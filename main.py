@@ -1,9 +1,26 @@
 """
 Main FastAPI application entry point.
 """
-from fastapi import FastAPI
+from datetime import datetime
+import traceback
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-from db_handler import db_manager
+from db_handler.database import db_manager
+from core.routes.user_route import user_router
+from models.api_models.error_models import ErrorResponse
+
+
+ERROR_RESPONSES = {
+    400: {"model": ErrorResponse, "description": "Bad Request"},
+    401: {"model": ErrorResponse, "description": "Unauthorized"},
+    403: {"model": ErrorResponse, "description": "Forbidden"},
+    404: {"model": ErrorResponse, "description": "Not Found"},
+    409: {"model": ErrorResponse, "description": "Conflict"},
+    422: {"model": ErrorResponse, "description": "Validation Error"},
+    500: {"model": ErrorResponse, "description": "Internal Server Error"},
+}
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -13,6 +30,7 @@ app = FastAPI(
     docs_url="/api/docs",
     redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
+    responses=ERROR_RESPONSES,
 )
 
 # Add CORS middleware
@@ -23,6 +41,46 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Register routers
+app.include_router(user_router)
+
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    """Return a consistent error payload for all HTTP exceptions."""
+    payload = ErrorResponse(
+        error_type="HTTPException",
+        detail=str(exc.detail),
+        path=request.url.path,
+        timestamp=datetime.utcnow(),
+    )
+    return JSONResponse(status_code=exc.status_code, content=payload.model_dump(mode="json"))
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """Return detailed validation errors with a consistent payload."""
+    payload = ErrorResponse(
+        error_type="ValidationError",
+        detail=str(exc.errors()),
+        path=request.url.path,
+        timestamp=datetime.utcnow(),
+    )
+    return JSONResponse(status_code=422, content=payload.model_dump(mode="json"))
+
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """Return detailed unhandled exception payload."""
+    payload = ErrorResponse(
+        error_type=exc.__class__.__name__,
+        detail=str(exc),
+        path=request.url.path,
+        timestamp=datetime.utcnow(),
+        trace=traceback.format_exception(type(exc), exc, exc.__traceback__),
+    )
+    return JSONResponse(status_code=500, content=payload.model_dump(mode="json"))
 
 
 # Health check endpoint
