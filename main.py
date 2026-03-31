@@ -46,6 +46,19 @@ app.add_middleware(
 app.include_router(user_router)
 
 
+def _format_validation_detail(errors: list[dict]) -> str:
+    """Convert Pydantic validation errors into a concise readable string."""
+    parts = []
+    for err in errors:
+        loc = ".".join(str(item) for item in err.get("loc", []))
+        msg = err.get("msg", "Invalid input")
+        if loc:
+            parts.append(f"{loc}: {msg}")
+        else:
+            parts.append(msg)
+    return "; ".join(parts)
+
+
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
     """Return a consistent error payload for all HTTP exceptions."""
@@ -61,9 +74,10 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
     """Return detailed validation errors with a consistent payload."""
+    detail = _format_validation_detail(exc.errors())
     payload = ErrorResponse(
         error_type="ValidationError",
-        detail=str(exc.errors()),
+        detail=detail,
         path=request.url.path,
         timestamp=datetime.utcnow(),
     )

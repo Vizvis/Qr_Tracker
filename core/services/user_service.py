@@ -1,5 +1,4 @@
 """User service layer for business logic and auth workflows."""
-from uuid import UUID
 from fastapi import HTTPException, status
 from auth.jwt_auth import JWTAuth
 from db_handler.user_db_handler import UserDBHandler
@@ -114,8 +113,8 @@ class UserService:
         return updated_user
 
     @staticmethod
-    async def delete_user(user_id: UUID) -> None:
-        deleted = await UserDBHandler.delete(user_id)
+    async def delete_user_by_phone(phone_number: str) -> None:
+        deleted = await UserDBHandler.delete_by_phone(phone_number)
         if not deleted:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
