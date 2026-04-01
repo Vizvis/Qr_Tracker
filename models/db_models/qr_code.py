@@ -1,5 +1,5 @@
 """QR Code model."""
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, String, DateTime, ForeignKey, Enum
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -10,14 +10,12 @@ from .base import Base
 class QRCode(Base):
     __tablename__ = "qr_codes"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    status = Column(String, default="pending")  # pending, active, inactive
-
-    registered_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    id = Column(String, primary_key=True)  # Provided by client (scanned from physical tag)
+    status = Column(Enum("pending", "active", "inactive", name="qr_status"), default="pending", nullable=False)
+    registered_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     enabled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-
     enabled_at = Column(DateTime, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     notes = Column(String, nullable=True)
 
     # Relationships
