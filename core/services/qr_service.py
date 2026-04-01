@@ -68,3 +68,20 @@ class QRService:
                 detail="QR Code not found.",
             )
         return updated_qr
+
+    @staticmethod
+    async def finish_session(qr_id: str) -> int:
+        qr_code = await QRDBHandler.get_by_id(qr_id)
+        if qr_code is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="QR Code not found.",
+            )
+
+        try:
+            return await QRDBHandler.finish_session(qr_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc

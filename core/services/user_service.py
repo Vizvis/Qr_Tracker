@@ -1,4 +1,6 @@
 """User service layer for business logic and auth workflows."""
+from uuid import UUID
+
 from fastapi import HTTPException, status
 from auth.jwt_auth import JWTAuth
 from db_handler.user_db_handler import UserDBHandler
@@ -13,6 +15,16 @@ class UserService:
     @staticmethod
     async def get_users(roles: list[RoleLevel] | None = None) -> list[User]:
         return await UserDBHandler.list_users(roles)
+
+    @staticmethod
+    async def get_user_by_id(user_id: UUID) -> User:
+        user = await UserDBHandler.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+        return user
 
     @staticmethod
     async def create_user(payload: UserCreateRequest) -> User:

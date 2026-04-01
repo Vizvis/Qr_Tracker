@@ -12,7 +12,9 @@ from auth.cookie_auth import require_valid_auth_cookie
 from db_handler.database import db_manager
 from core.routes.user_route import user_router
 from core.routes.department_route import department_router
+from core.routes.produced_items_route import produced_items_router
 from core.routes.qr_route import qr_router
+from core.routes.session_route import session_router
 from models.api_models.error_models import ErrorResponse
 
 
@@ -49,7 +51,9 @@ app.add_middleware(
 # Register routers
 app.include_router(user_router)
 app.include_router(department_router)
+app.include_router(produced_items_router)
 app.include_router(qr_router)
+app.include_router(session_router)
 
 
 def _format_validation_detail(errors: list[dict]) -> str:

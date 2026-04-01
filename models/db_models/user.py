@@ -24,7 +24,5 @@ class User(Base):
     created_qrs = relationship("QRCode", foreign_keys="QRCode.registered_by")
     enabled_qrs = relationship("QRCode", foreign_keys="QRCode.enabled_by")
 
-    approved_items = relationship("ProducedItems", back_populates="approver")
-
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

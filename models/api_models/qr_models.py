@@ -30,3 +30,11 @@ class QRCodeResponse(BaseModel):
     enabled_at: datetime | None
     created_at: datetime
     notes: str | None
+
+
+class QRSessionFinalizeResponse(BaseModel):
+    """Response payload for moving remarks into produced_items and clearing remarks."""
+
+    qr_id: str
+    moved_count: int
+    message: str

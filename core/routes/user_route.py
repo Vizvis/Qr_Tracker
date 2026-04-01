@@ -1,5 +1,7 @@
 """User API routes (router/blueprint) for auth and CRUD operations."""
 from typing import Annotated
+from uuid import UUID
+
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
 from core.services.user_service import UserService
@@ -145,3 +147,21 @@ async def delete_user(
     """Delete user endpoint."""
     await UserService.delete_user_by_phone(phone_number)
     return MessageResponse(message="User deleted successfully.")
+
+
+@user_router.get("/{user_id}", response_model=UserResponse)
+async def get_user_by_id(
+    user_id: Annotated[UUID, Path(..., description="User ID")],
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Get user by ID endpoint."""
+    user = await UserService.get_user_by_id(user_id)
+    return UserResponse(
+        id=str(user.id),
+        name=user.name,
+        phone_number=user.phone_number,
+        email=user.email,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )

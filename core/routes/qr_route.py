@@ -5,6 +5,7 @@ from models.api_models.qr_models import (
     QRCodeCreateRequest,
     QRCodeStatusUpdate,
     QRCodeResponse,
+    QRSessionFinalizeResponse,
 )
 from uuid import UUID
 from auth.dependencies import require_admin, require_supervisor
@@ -57,3 +58,17 @@ async def disable_qr(
 ):
     """Set QR Code status to inactive (Supervisor+)."""
     return await QRService.update_qr_status(id, "inactive", payload, current_user_id=current_user_id)
+
+
+@qr_router.post("/{id}/finish-session", response_model=QRSessionFinalizeResponse)
+async def finish_session(
+    id: str,
+    current_user_id: UUID = Depends(require_supervisor),
+):
+    """Move current QR remarks to produced_items and clear remarks for that QR."""
+    moved_count = await QRService.finish_session(id)
+    return QRSessionFinalizeResponse(
+        qr_id=id,
+        moved_count=moved_count,
+        message="Session finalized successfully.",
+    )

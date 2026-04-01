@@ -25,7 +25,7 @@ class Department(Base):
 
     # Relationships
     head = relationship("User")
-    produced_items = relationship("ProducedItems", back_populates="final_dept")
+    produced_items = relationship("ProducedItems", back_populates="department")
     remarks = relationship("Remarks", back_populates="department")
 
     def __repr__(self):
