@@ -13,7 +13,7 @@ class ScanEvent(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
     session_id = Column(UUID(as_uuid=True), ForeignKey("production_sessions.id"), nullable=False)
-    qr_code_id = Column(UUID(as_uuid=True), ForeignKey("qr_codes.id"), nullable=False)
+    qr_code_id = Column(String, ForeignKey("qr_codes.id"), nullable=False)
     scanned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
 
     department = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=False)

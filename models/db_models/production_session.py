@@ -11,7 +11,7 @@ class ProductionSession(Base):
     __tablename__ = "production_sessions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
-    qr_code_id = Column(UUID(as_uuid=True), ForeignKey("qr_codes.id"), nullable=False)
+    qr_code_id = Column(String, ForeignKey("qr_codes.id"), nullable=False)
 
     status = Column(String, default="open")  # open, closed, voided
 

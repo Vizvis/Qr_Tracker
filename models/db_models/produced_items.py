@@ -12,7 +12,7 @@ class ProducedItems(Base):
 
     produced_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid4)
 
-    qr_code_id = Column(UUID(as_uuid=True), ForeignKey("qr_codes.id"), nullable=False)
+    qr_code_id = Column(String, ForeignKey("qr_codes.id"), nullable=False)
     item_id = Column(String, nullable=False)
 
     approval_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
