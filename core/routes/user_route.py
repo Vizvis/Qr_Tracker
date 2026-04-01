@@ -1,8 +1,9 @@
 """User API routes (router/blueprint) for auth and CRUD operations."""
 from typing import Annotated
-from fastapi import APIRouter, Depends, Path, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
 from core.services.user_service import UserService
+from models.db_models.enums import RoleLevel
 from models.api_models.user_models import (
     UserCreateRequest,
     UserUpdateRequest,
@@ -14,6 +15,41 @@ from models.api_models.user_models import (
 
 
 user_router = APIRouter(prefix="/api/users", tags=["Users"])
+
+
+@user_router.get("", response_model=list[UserResponse])
+async def get_users(
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    roles: Annotated[
+        list[str] | None,
+        Query(description="Optional role filters. Supports repeated params or comma-separated values."),
+    ] = None,
+):
+    """Get all users, or only users matching provided roles."""
+    parsed_roles: list[RoleLevel] | None = None
+    if roles:
+        tokens = [part.strip().lower() for value in roles for part in value.split(",") if part.strip()]
+        invalid_roles = [token for token in tokens if token not in {role.value for role in RoleLevel}]
+        if invalid_roles:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Invalid roles: {', '.join(invalid_roles)}",
+            )
+        parsed_roles = [RoleLevel(token) for token in tokens]
+
+    users = await UserService.get_users(parsed_roles)
+    return [
+        UserResponse(
+            id=str(user.id),
+            name=user.name,
+            phone_number=user.phone_number,
+            email=user.email,
+            role=user.role,
+            is_active=user.is_active,
+            created_at=user.created_at,
+        )
+        for user in users
+    ]
 
 
 @user_router.post("/login", response_model=AuthResponse)

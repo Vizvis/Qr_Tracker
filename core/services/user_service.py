@@ -2,12 +2,17 @@
 from fastapi import HTTPException, status
 from auth.jwt_auth import JWTAuth
 from db_handler.user_db_handler import UserDBHandler
+from models.db_models.enums import RoleLevel
 from models.db_models.user import User
 from models.api_models.user_models import UserCreateRequest, UserUpdateRequest, UserLoginRequest
 
 
 class UserService:
     """Business logic for user and auth endpoints."""
+
+    @staticmethod
+    async def get_users(roles: list[RoleLevel] | None = None) -> list[User]:
+        return await UserDBHandler.list_users(roles)
 
     @staticmethod
     async def create_user(payload: UserCreateRequest) -> User:

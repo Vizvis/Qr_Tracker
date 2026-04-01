@@ -24,12 +24,6 @@ class User(Base):
     created_qrs = relationship("QRCode", foreign_keys="QRCode.registered_by")
     enabled_qrs = relationship("QRCode", foreign_keys="QRCode.enabled_by")
 
-    started_sessions = relationship("ProductionSession", foreign_keys="ProductionSession.started_by")
-    closed_sessions = relationship("ProductionSession", foreign_keys="ProductionSession.closed_by")
-    voided_sessions = relationship("ProductionSession", foreign_keys="ProductionSession.voided_by")
-
-    scan_events = relationship("ScanEvent", back_populates="user")
-
     approved_items = relationship("ProducedItems", back_populates="approver")
 
     def __repr__(self):

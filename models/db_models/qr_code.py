@@ -23,10 +23,8 @@ class QRCode(Base):
     # Relationships
     creator = relationship("User", foreign_keys=[registered_by])
     enabler = relationship("User", foreign_keys=[enabled_by])
-
-    sessions = relationship("ProductionSession", back_populates="qr_code")
-    scans = relationship("ScanEvent", back_populates="qr_code")
     produced_items = relationship("ProducedItems", back_populates="qr_code")
+    remarks = relationship("Remarks", back_populates="qr_code")
 
     def __repr__(self):
         return f"<QRCode(id={self.id}, status={self.status})>"

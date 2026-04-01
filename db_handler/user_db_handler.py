@@ -2,6 +2,7 @@
 from uuid import UUID
 from sqlalchemy import select, func, or_
 from db_handler.database import db_manager
+from models.db_models.enums import RoleLevel
 from models.db_models.user import User
 
 
@@ -54,6 +55,16 @@ class UserDBHandler:
                 select(User).where(UserDBHandler._phone_match_clause(normalized_phone))
             )
             return result.scalar_one_or_none()
+
+    @staticmethod
+    async def list_users(roles: list[RoleLevel] | None = None) -> list[User]:
+        async with db_manager.session_factory() as db:
+            stmt = select(User)
+            if roles:
+                stmt = stmt.where(User.role.in_(roles))
+
+            result = await db.execute(stmt)
+            return list(result.scalars().all())
 
     @staticmethod
     async def create(user: User) -> User:

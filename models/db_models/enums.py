@@ -18,3 +18,10 @@ class DepartmentEnum(str, Enum):
     SHIPPING = "shipping"
     WAREHOUSE = "warehouse"
     MANAGEMENT = "management"
+
+
+class DepartmentStatus(str, Enum):
+    """Department status values."""
+
+    ACTIVE = "active"
+    INACTIVE = "inactive"
