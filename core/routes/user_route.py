@@ -1,7 +1,7 @@
 """User API routes (router/blueprint) for auth and CRUD operations."""
 from typing import Annotated
-from fastapi import APIRouter, Path, Response, status
-from auth.cookie_auth import CookieAuth
+from fastapi import APIRouter, Depends, Path, Response, status
+from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
 from core.services.user_service import UserService
 from models.api_models.user_models import (
     UserCreateRequest,
@@ -37,14 +37,20 @@ async def login(payload: UserLoginRequest, response: Response):
 
 
 @user_router.post("/logout", response_model=MessageResponse)
-async def logout(response: Response):
+async def logout(
+    response: Response,
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
     """Logout endpoint and clear auth cookies."""
     CookieAuth.delete_auth_cookies(response)
     return MessageResponse(message="Logged out successfully.")
 
 
 @user_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(payload: UserCreateRequest):
+async def create_user(
+    payload: UserCreateRequest,
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
     """Create user endpoint."""
     user = await UserService.create_user(payload)
     return UserResponse(
@@ -71,6 +77,7 @@ async def modify_user(
         ),
     ],
     payload: UserUpdateRequest,
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
 ):
     """Modify user endpoint."""
     user = await UserService.update_user_by_phone(phone_number, payload)
@@ -96,7 +103,8 @@ async def delete_user(
             pattern=r"^\d{10}$",
             description="Phone number must be exactly 10 digits.",
         ),
-    ]
+    ],
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
 ):
     """Delete user endpoint."""
     await UserService.delete_user_by_phone(phone_number)

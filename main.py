@@ -3,10 +3,12 @@ Main FastAPI application entry point.
 """
 from datetime import datetime
 import traceback
-from fastapi import FastAPI, HTTPException, Request
+from typing import Annotated
+from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from auth.cookie_auth import require_valid_auth_cookie
 from db_handler.database import db_manager
 from core.routes.user_route import user_router
 from models.api_models.error_models import ErrorResponse
@@ -99,7 +101,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 
 # Health check endpoint
 @app.get("/api/health", tags=["Health"])
-async def health_check():
+async def health_check(_: Annotated[dict, Depends(require_valid_auth_cookie)]):
     """Health check endpoint to verify API is running."""
     return {
         "status": "healthy",
@@ -110,7 +112,7 @@ async def health_check():
 
 # Root endpoint
 @app.get("/", tags=["Root"])
-async def root():
+async def root(_: Annotated[dict, Depends(require_valid_auth_cookie)]):
     """Root endpoint with API information."""
     return {
         "message": "Welcome to QR Tracker API",

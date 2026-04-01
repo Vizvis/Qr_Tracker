@@ -2,6 +2,8 @@
 Database configuration for local and cloud environments.
 Default is cloud (USE_LOCAL_DB=False), set to True for local development.
 """
+import os
+import secrets
 
 # Environment control
 USE_LOCAL_DB = True
@@ -21,7 +23,8 @@ DB_PORT_LOCAL = 5432
 DB_NAME_LOCAL = "QR_tracker"
 
 # JWT Settings
-SECRET_KEY = ""  # Will be fetched from cloud
+# Prefer environment-provided key; fallback to a random dev key when missing.
+SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

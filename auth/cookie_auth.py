@@ -1,8 +1,8 @@
 """Cookie-based authentication handler for FastAPI."""
-from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import Response, Request
+from fastapi import HTTPException, Response, Request, status
 from config import ACCESS_TOKEN_EXPIRE_MINUTES
+from auth.jwt_auth import JWTAuth
 
 
 class CookieAuth:
@@ -10,6 +10,7 @@ class CookieAuth:
     
     COOKIE_NAME = "access_token"
     REFRESH_COOKIE_NAME = "refresh_token"
+    COOKIE_PATH = "/"
     
     @staticmethod
     def set_auth_cookie(response: Response, token: str, max_age: Optional[int] = None) -> None:
@@ -24,6 +25,7 @@ class CookieAuth:
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite="lax",
+            path=CookieAuth.COOKIE_PATH,
         )
     
     @staticmethod
@@ -36,6 +38,7 @@ class CookieAuth:
             httponly=True,
             secure=False,  # Set to True in production with HTTPS
             samesite="lax",
+            path=CookieAuth.COOKIE_PATH,
         )
     
     @staticmethod
@@ -51,13 +54,50 @@ class CookieAuth:
     @staticmethod
     def delete_auth_cookies(response: Response) -> None:
         """Delete authentication cookies from response."""
+        # Delete current cookie path.
         response.delete_cookie(
             key=CookieAuth.COOKIE_NAME,
             httponly=True,
             samesite="lax",
+            path=CookieAuth.COOKIE_PATH,
         )
         response.delete_cookie(
             key=CookieAuth.REFRESH_COOKIE_NAME,
             httponly=True,
             samesite="lax",
+            path=CookieAuth.COOKIE_PATH,
         )
+
+        # Cleanup legacy cookies that may have been set under /api path.
+        response.delete_cookie(
+            key=CookieAuth.COOKIE_NAME,
+            httponly=True,
+            samesite="lax",
+            path="/api",
+        )
+        response.delete_cookie(
+            key=CookieAuth.REFRESH_COOKIE_NAME,
+            httponly=True,
+            samesite="lax",
+            path="/api",
+        )
+
+
+async def require_valid_auth_cookie(request: Request) -> dict:
+    """Validate access token from cookie and return JWT payload."""
+    token = CookieAuth.get_token_from_cookie(request)
+
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated. Please login first.",
+        )
+
+    payload = JWTAuth.verify_token(token)
+    if payload is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token.",
+        )
+
+    return payload

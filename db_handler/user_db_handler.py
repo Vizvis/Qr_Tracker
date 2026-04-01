@@ -25,13 +25,19 @@ class UserDBHandler:
         # Allow matching local 10-digit input with stored +country_code numbers.
         if len(normalized_phone) == 10:
             clauses.append(func.right(normalized_db_phone, 10) == normalized_phone)
-
+ 
         return or_(*clauses)
 
     @staticmethod
     async def get_by_email(email: str) -> User | None:
         async with db_manager.session_factory() as db:
             result = await db.execute(select(User).where(User.email == email))
+            return result.scalar_one_or_none()
+
+    @staticmethod
+    async def get_password_by_email(email: str) -> str | None:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(select(User.hashed_password).where(User.email == email))
             return result.scalar_one_or_none()
 
     @staticmethod
