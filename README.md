@@ -68,10 +68,12 @@ cp .env.example .env
 ```
 
 **For Cloud (Default)**:
+
 - Set `USE_LOCAL_DB=False`
 - Add your Supabase credentials (URL, password, etc.)
 
 **For Local Development**:
+
 - Set `USE_LOCAL_DB=True`
 - Ensure PostgreSQL is running locally
 
@@ -92,6 +94,7 @@ alembic upgrade head
 ## Database Models
 
 ### Models Included:
+
 - **User**: Users with roles (admin, supervisor, operator, viewer)
 - **QRCode**: QR code tracking with status (pending, active, inactive)
 - **Department**: Departments with types (production, QA, packaging, etc.)
