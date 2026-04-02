@@ -13,6 +13,8 @@ from models.api_models.user_models import (
     UserResponse,
     AuthResponse,
     MessageResponse,
+    ChangePasswordRequest,
+    AdminPasswordResetRequest,
 )
 
 
@@ -82,6 +84,35 @@ async def logout(
     """Logout endpoint and clear auth cookies."""
     CookieAuth.delete_auth_cookies(response)
     return MessageResponse(message="Logged out successfully.")
+
+
+@user_router.put("/me/password", response_model=MessageResponse)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Change logged-in user's password."""
+    user_id = UUID(current_user["user_id"])
+    await UserService.change_password(user_id, payload)
+    return MessageResponse(message="Password updated successfully.")
+
+
+@user_router.put("/{user_id}/reset-password", response_model=MessageResponse)
+async def admin_reset_password(
+    user_id: Annotated[UUID, Path(..., description="User ID")],
+    payload: AdminPasswordResetRequest,
+    current_user: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Admin endpoint to arbitrarily change a user's password."""
+    role_str = str(current_user.get("role", "")).lower()
+    if role_str != "admin" and role_str != "rolelevel.admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Admin privileges required.",
+        )
+    
+    await UserService.admin_reset_password(user_id, payload)
+    return MessageResponse(message="User password reset successfully.")
 
 
 @user_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)

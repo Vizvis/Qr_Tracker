@@ -2,7 +2,7 @@
 from fastapi import HTTPException, status
 from db_handler.qr_db_handler import QRDBHandler
 from models.db_models.qr_code import QRCode
-from models.api_models.qr_models import QRCodeCreateRequest, QRCodeStatusUpdate
+from models.api_models.qr_models import QRCodeCreateRequest, QRCodeStatusUpdate, QRTagStatusUpdate
 from uuid import UUID
 
 
@@ -20,7 +20,7 @@ class QRService:
 
         new_qr = QRCode(
             id=payload.id,
-            status="pending",
+            status="inactive",
             registered_by=current_user_id,
             notes=payload.notes,
         )
@@ -41,7 +41,7 @@ class QRService:
         return qr_code
 
     @staticmethod
-    async def update_qr_status(qr_id: str, new_status: str, payload: QRCodeStatusUpdate, current_user_id: UUID) -> QRCode:
+    async def update_qr_status(qr_id: str, new_status: str, payload: QRCodeStatusUpdate | QRTagStatusUpdate, current_user_id: UUID) -> QRCode:
         if new_status not in ["active", "inactive"]:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -85,3 +85,12 @@ class QRService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             ) from exc
+
+    @staticmethod
+    async def delete_qr(qr_id: str) -> None:
+        deleted = await QRDBHandler.delete_qr(qr_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Tag ID not found",
+            )

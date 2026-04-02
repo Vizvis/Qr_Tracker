@@ -23,7 +23,8 @@ if config_obj.config_file_name is not None:
     fileConfig(config_obj.config_file_name)
 
 # Set the database URL
-config_obj.set_main_option("sqlalchemy.url", DatabaseConfig.get_database_url_sync())
+# Escape '%' to '%%' to prevent configparser interpolation errors
+config_obj.set_main_option("sqlalchemy.url", DatabaseConfig.get_database_url_sync().replace("%", "%%"))
 
 # Model's MetaData object for 'autogenerate' support
 target_metadata = Base.metadata

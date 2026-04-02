@@ -8,13 +8,26 @@ from uuid import UUID
 class QRCodeCreateRequest(BaseModel):
     """Request body for creating a QR code."""
 
-    id: str = Field(..., min_length=1, description="The unique physical ID of the QR Code")
+    id: str = Field(
+        ..., 
+        min_length=8, 
+        max_length=8, 
+        pattern=r"^\d{8}$", 
+        description="The unique physical ID of the QR Code (must be exactly 8 digits)"
+    )
     notes: str | None = None
 
 
 class QRCodeStatusUpdate(BaseModel):
     """Request body for updating a QR code status."""
-    
+
+    notes: str | None = None
+
+
+class QRTagStatusUpdate(BaseModel):
+    """Request body for updating a QR code via PUT."""
+
+    status: str
     notes: str | None = None
 
 

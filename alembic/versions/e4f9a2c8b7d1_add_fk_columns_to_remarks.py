@@ -17,7 +17,7 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("remarks", sa.Column("qr_id", sa.UUID(), nullable=True))
+    op.add_column("remarks", sa.Column("qr_id", sa.String(), nullable=True))
     op.add_column("remarks", sa.Column("department_id", sa.UUID(), nullable=True))
 
     op.create_foreign_key(

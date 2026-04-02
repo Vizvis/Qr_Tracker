@@ -1,12 +1,14 @@
 """QR Code API routes."""
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Path
 from core.services.qr_service import QRService
 from models.api_models.qr_models import (
     QRCodeCreateRequest,
     QRCodeStatusUpdate,
+    QRTagStatusUpdate,
     QRCodeResponse,
     QRSessionFinalizeResponse,
 )
+from typing import Annotated
 from uuid import UUID
 from auth.dependencies import require_admin, require_supervisor
 
@@ -33,7 +35,7 @@ async def get_all_qrs(
 
 @qr_router.get("/{id}", response_model=QRCodeResponse)
 async def get_qr_by_id(
-    id: str,
+    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
     current_user_id: UUID = Depends(require_supervisor)
 ):
     """Get specific QR code by ID (Supervisor+)."""
@@ -42,7 +44,7 @@ async def get_qr_by_id(
 
 @qr_router.patch("/{id}/enable", response_model=QRCodeResponse)
 async def enable_qr(
-    id: str,
+    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
     payload: QRCodeStatusUpdate,
     current_user_id: UUID = Depends(require_supervisor)
 ):
@@ -52,7 +54,7 @@ async def enable_qr(
 
 @qr_router.patch("/{id}/disable", response_model=QRCodeResponse)
 async def disable_qr(
-    id: str,
+    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
     payload: QRCodeStatusUpdate,
     current_user_id: UUID = Depends(require_supervisor)
 ):
@@ -60,9 +62,20 @@ async def disable_qr(
     return await QRService.update_qr_status(id, "inactive", payload, current_user_id=current_user_id)
 
 
+@qr_router.put("/{id}/status")
+async def update_qr_status(
+    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
+    payload: QRTagStatusUpdate,
+    current_user_id: UUID = Depends(require_supervisor)
+):
+    """Set QR Code status to active or inactive via PUT request (Supervisor+)."""
+    await QRService.update_qr_status(id, payload.status.lower(), payload, current_user_id=current_user_id)
+    return {"detail": "Tag status updated successfully"}
+
+
 @qr_router.post("/{id}/finish-session", response_model=QRSessionFinalizeResponse)
 async def finish_session(
-    id: str,
+    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
     current_user_id: UUID = Depends(require_supervisor),
 ):
     """Move current QR remarks to produced_items and clear remarks for that QR."""
@@ -72,3 +85,15 @@ async def finish_session(
         moved_count=moved_count,
         message="Session finalized successfully.",
     )
+
+
+@qr_router.delete("/{id}", status_code=status.HTTP_200_OK)
+async def delete_qr(
+    id: str,
+    current_user_id: UUID = Depends(require_admin)
+):
+    """Delete a QR code from the system (Admin only).
+    Does not enforce the 8-digit format to allow admins to clean up broken/legacy test tags.
+    """
+    await QRService.delete_qr(id)
+    return {"detail": "QR tag deleted successfully"}

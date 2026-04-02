@@ -6,7 +6,7 @@ from auth.jwt_auth import JWTAuth
 from db_handler.user_db_handler import UserDBHandler
 from models.db_models.enums import RoleLevel
 from models.db_models.user import User
-from models.api_models.user_models import UserCreateRequest, UserUpdateRequest, UserLoginRequest
+from models.api_models.user_models import UserCreateRequest, UserUpdateRequest, UserLoginRequest, ChangePasswordRequest, AdminPasswordResetRequest
 
 
 class UserService:
@@ -137,3 +137,33 @@ class UserService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found.",
             )
+
+    @staticmethod
+    async def change_password(user_id: UUID, payload: ChangePasswordRequest) -> None:
+        user = await UserDBHandler.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        if not JWTAuth.verify_password(payload.current_password, user.hashed_password):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect current password.",
+            )
+
+        hashed_password = JWTAuth.hash_password(payload.new_password)
+        await UserDBHandler.update(user_id, {"hashed_password": hashed_password})
+
+    @staticmethod
+    async def admin_reset_password(user_id: UUID, payload: AdminPasswordResetRequest) -> None:
+        user = await UserDBHandler.get_by_id(user_id)
+        if user is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found.",
+            )
+
+        hashed_password = JWTAuth.hash_password(payload.new_password)
+        await UserDBHandler.update(user_id, {"hashed_password": hashed_password})
