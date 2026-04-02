@@ -1,7 +1,8 @@
 """Database access layer for session-style remarks lookups."""
 from uuid import UUID
 
-from sqlalchemy import String as SQLString, cast, desc, select
+from sqlalchemy import String as SQLString, cast, desc, func, select
+from sqlalchemy.exc import IntegrityError
 from db_handler.database import db_manager
 from models.db_models.department import Department
 from models.db_models.qr_code import QRCode
@@ -18,6 +19,7 @@ class SessionDBHandler:
         department_id: UUID,
         general_remarks: str | None,
         issue_remarks: str | None,
+        current_user_id: UUID | None = None,
     ) -> tuple[Remarks, str | None]:
         async with db_manager.session_factory() as db:
             remark = Remarks(
@@ -26,14 +28,77 @@ class SessionDBHandler:
                 department_id=department_id,
                 general_remarks=general_remarks,
                 issue_remarks=issue_remarks,
+                remark_by=current_user_id,
+                remark_updated=current_user_id,
             )
             db.add(remark)
-            await db.commit()
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                raise
             await db.refresh(remark)
 
             result = await db.execute(
                 select(Department.dept_type)
                 .where(Department.id == department_id)
+                .limit(1)
+            )
+            dept_type = result.scalar_one_or_none()
+            return (remark, dept_type.value if dept_type is not None else None)
+
+    @staticmethod
+    async def get_by_id(remark_id: UUID) -> Remarks | None:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(select(Remarks).where(Remarks.id == remark_id))
+            return result.scalar_one_or_none()
+
+    @staticmethod
+    async def list_all_remarks(page: int, page_size: int) -> tuple[list[tuple[Remarks, str | None]], int]:
+        offset = (page - 1) * page_size
+        async with db_manager.session_factory() as db:
+            total = await db.scalar(select(func.count()).select_from(Remarks))
+            result = await db.execute(
+                select(Remarks, Department.dept_type)
+                .outerjoin(Department, Remarks.department_id == Department.id)
+                .order_by(Remarks.created_at.desc())
+                .offset(offset)
+                .limit(page_size)
+            )
+            rows = result.all()
+            return [
+                (remark, dept_type.value if dept_type is not None else None)
+                for remark, dept_type in rows
+            ], int(total or 0)
+
+    @staticmethod
+    async def update_remark(
+        remark_id: UUID,
+        update_data: dict,
+        current_user_id: UUID | None = None,
+    ) -> tuple[Remarks, str | None] | None:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(select(Remarks).where(Remarks.id == remark_id))
+            remark = result.scalar_one_or_none()
+            if remark is None:
+                return None
+
+            for field, value in update_data.items():
+                setattr(remark, field, value)
+
+            if current_user_id is not None:
+                remark.remark_updated = current_user_id
+
+            try:
+                await db.commit()
+            except IntegrityError:
+                await db.rollback()
+                raise
+            await db.refresh(remark)
+
+            result = await db.execute(
+                select(Department.dept_type)
+                .where(Department.id == remark.department_id)
                 .limit(1)
             )
             dept_type = result.scalar_one_or_none()
@@ -95,18 +160,24 @@ class SessionDBHandler:
             return (remark, dept_type.value if dept_type is not None else None)
 
     @staticmethod
-    async def list_active_qr_remarks() -> list[dict]:
+    async def list_active_qr_remarks(page: int, page_size: int) -> tuple[list[dict], int]:
+        offset = (page - 1) * page_size
         async with db_manager.session_factory() as db:
+            total = await db.scalar(
+                select(func.count()).select_from(QRCode).where(QRCode.status == "active")
+            )
             active_qrs = (
                 await db.scalars(
                     select(QRCode)
                     .where(QRCode.status == "active")
                     .order_by(QRCode.enabled_at.desc(), QRCode.id.asc())
+                    .offset(offset)
+                    .limit(page_size)
                 )
             ).all()
 
             if not active_qrs:
-                return []
+                return [], int(total or 0)
 
             qr_ids = [qr.id for qr in active_qrs]
             rows = (
@@ -129,6 +200,8 @@ class SessionDBHandler:
                         "department": dept_type.value if dept_type is not None else None,
                         "general_remarks": remark.general_remarks,
                         "issue_remarks": remark.issue_remarks,
+                        "remark_by": str(remark.remark_by) if remark.remark_by else None,
+                        "remark_updated": str(remark.remark_updated) if remark.remark_updated else None,
                         "created_at": remark.created_at,
                     }
                 )
@@ -142,4 +215,4 @@ class SessionDBHandler:
                     "remarks": remarks_by_qr.get(qr.id, []),
                 }
                 for qr in active_qrs
-            ]
+            ], int(total or 0)

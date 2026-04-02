@@ -29,3 +29,13 @@ class DepartmentResponse(BaseModel):
     status: DepartmentStatus
     head_of_department: str | None
     created_on: datetime
+
+
+class DepartmentListResponse(BaseModel):
+    """Paginated department list response payload."""
+
+    items: list[DepartmentResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

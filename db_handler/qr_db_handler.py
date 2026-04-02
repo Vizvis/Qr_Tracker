@@ -1,7 +1,7 @@
 """Database access layer for QR Code operations."""
 from uuid import UUID
 from datetime import datetime
-from sqlalchemy import delete, select
+from sqlalchemy import delete, func, select
 from db_handler.database import db_manager
 from models.db_models.produced_items import ProducedItems
 from models.db_models.qr_code import QRCode
@@ -22,6 +22,19 @@ class QRDBHandler:
         async with db_manager.session_factory() as db:
             result = await db.execute(select(QRCode))
             return list(result.scalars().all())
+
+    @staticmethod
+    async def list_paginated(page: int, page_size: int) -> tuple[list[QRCode], int]:
+        offset = (page - 1) * page_size
+        async with db_manager.session_factory() as db:
+            total = int(await db.scalar(select(func.count()).select_from(QRCode)) or 0)
+            result = await db.execute(
+                select(QRCode)
+                .order_by(QRCode.created_at.desc())
+                .offset(offset)
+                .limit(page_size)
+            )
+            return list(result.scalars().all()), total
 
     @staticmethod
     async def create(qr_code: QRCode) -> QRCode:
@@ -46,9 +59,11 @@ class QRDBHandler:
             if new_status == "active":
                 qr_code.enabled_by = action_by
                 qr_code.enabled_at = datetime.utcnow()
+                qr_code.disabled_by = None
+                qr_code.disabled_at = None
             elif new_status == "inactive":
-                qr_code.enabled_by = None
-                qr_code.enabled_at = None
+                qr_code.disabled_by = action_by
+                qr_code.disabled_at = datetime.utcnow()
 
             await db.commit()
             await db.refresh(qr_code)
@@ -79,6 +94,10 @@ class QRDBHandler:
                     department_id=remark.department_id,
                     general_remarks=remark.general_remarks,
                     issue_remarks=remark.issue_remarks,
+                    created_by=remark.remark_by,
+                    updated_by=remark.remark_updated,
+                    remark_by=remark.remark_by,
+                    remark_updated=remark.remark_updated,
                     created_at=remark.created_at,
                 )
                 db.add(produced_item)

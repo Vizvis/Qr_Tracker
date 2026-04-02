@@ -67,6 +67,28 @@ class UserDBHandler:
             return list(result.scalars().all())
 
     @staticmethod
+    async def count_users(roles: list[RoleLevel] | None = None) -> int:
+        async with db_manager.session_factory() as db:
+            stmt = select(func.count()).select_from(User)
+            if roles:
+                stmt = stmt.where(User.role.in_(roles))
+            return int(await db.scalar(stmt) or 0)
+
+    @staticmethod
+    async def list_users_paginated(page: int, page_size: int, roles: list[RoleLevel] | None = None) -> tuple[list[User], int]:
+        offset = (page - 1) * page_size
+        async with db_manager.session_factory() as db:
+            stmt = select(User)
+            count_stmt = select(func.count()).select_from(User)
+            if roles:
+                stmt = stmt.where(User.role.in_(roles))
+                count_stmt = count_stmt.where(User.role.in_(roles))
+
+            total = int(await db.scalar(count_stmt) or 0)
+            result = await db.execute(stmt.order_by(User.created_at.desc()).offset(offset).limit(page_size))
+            return list(result.scalars().all()), total
+
+    @staticmethod
     async def create(user: User) -> User:
         user.phone_number = UserDBHandler._normalize_phone(user.phone_number)
         async with db_manager.session_factory() as db:

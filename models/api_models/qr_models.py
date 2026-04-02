@@ -31,6 +31,14 @@ class QRTagStatusUpdate(BaseModel):
     notes: str | None = None
 
 
+class QRCodeToggleRequest(BaseModel):
+    """Request body for enabling/disabling a QR code by ids."""
+
+    user_id: UUID
+    qr_code_id: str = Field(..., min_length=1)
+    notes: str | None = None
+
+
 class QRCodeResponse(BaseModel):
     """Public QR Code response model."""
 
@@ -41,6 +49,8 @@ class QRCodeResponse(BaseModel):
     registered_by: UUID
     enabled_by: UUID | None
     enabled_at: datetime | None
+    disabled_by: UUID | None
+    disabled_at: datetime | None
     created_at: datetime
     notes: str | None
 
@@ -51,3 +61,13 @@ class QRSessionFinalizeResponse(BaseModel):
     qr_id: str
     moved_count: int
     message: str
+
+
+class QRCodeListResponse(BaseModel):
+    """Paginated QR code list response payload."""
+
+    items: list[QRCodeResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

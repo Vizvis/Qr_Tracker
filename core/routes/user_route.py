@@ -4,6 +4,8 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
+from auth.dependencies import get_current_user_token
+from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from core.services.user_service import UserService
 from models.db_models.enums import RoleLevel
 from models.api_models.user_models import (
@@ -15,15 +17,17 @@ from models.api_models.user_models import (
     MessageResponse,
     ChangePasswordRequest,
     AdminPasswordResetRequest,
+    UserListResponse,
 )
-
 
 user_router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
-@user_router.get("", response_model=list[UserResponse])
+@user_router.get("", response_model=UserListResponse)
 async def get_users(
     _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
     roles: Annotated[
         list[str] | None,
         Query(description="Optional role filters. Supports repeated params or comma-separated values."),
@@ -41,19 +45,7 @@ async def get_users(
             )
         parsed_roles = [RoleLevel(token) for token in tokens]
 
-    users = await UserService.get_users(parsed_roles)
-    return [
-        UserResponse(
-            id=str(user.id),
-            name=user.name,
-            phone_number=user.phone_number,
-            email=user.email,
-            role=user.role,
-            is_active=user.is_active,
-            created_at=user.created_at,
-        )
-        for user in users
-    ]
+    return await UserService.get_users(page, page_size, parsed_roles)
 
 
 @user_router.post("/login", response_model=AuthResponse)
@@ -178,6 +170,38 @@ async def delete_user(
     """Delete user endpoint."""
     await UserService.delete_user_by_phone(phone_number)
     return MessageResponse(message="User deleted successfully.")
+
+
+@user_router.get("/me", response_model=UserResponse)
+async def get_me(
+    payload: Annotated[dict, Depends(get_current_user_token)],
+):
+    """Get the currently authenticated user profile from auth cookie token."""
+    user_id = payload.get("user_id")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload.",
+        )
+
+    try:
+        user_uuid = UUID(str(user_id))
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload.",
+        ) from exc
+
+    user = await UserService.get_user_by_id(user_uuid)
+    return UserResponse(
+        id=str(user.id),
+        name=user.name,
+        phone_number=user.phone_number,
+        email=user.email,
+        role=user.role,
+        is_active=user.is_active,
+        created_at=user.created_at,
+    )
 
 
 @user_router.get("/{user_id}", response_model=UserResponse)

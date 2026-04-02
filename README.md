@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Qr_Tracker
-=======
 # QR Tracker
 
 A FastAPI-based QR code tracking system for production process monitoring.
@@ -122,4 +119,3 @@ No code changes needed - the config handles both automatically!
 2. Configure `.env` file with credentials
 3. Run migrations: `alembic upgrade head`
 4. Start building your FastAPI endpoints!
->>>>>>> ce9ebc9 (Initial commit)

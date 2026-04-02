@@ -17,11 +17,17 @@ class ProducedItems(Base):
     department_id = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=False)
     general_remarks = Column(String, nullable=True)
     issue_remarks = Column(String, nullable=True)
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    remark_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    remark_updated = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
 
     # Relationships
     qr_code = relationship("QRCode", back_populates="produced_items")
     department = relationship("Department", back_populates="produced_items")
+    creator = relationship("User", foreign_keys=[created_by])
+    updater = relationship("User", foreign_keys=[updated_by])
 
     def __repr__(self):
         return f"<ProducedItems(produced_id={self.produced_id}, item_id={self.item_id})>"

@@ -2,19 +2,42 @@
 from uuid import UUID
 
 from fastapi import HTTPException, status
+from core.pagination import build_pagination, normalize_page_size
 from auth.jwt_auth import JWTAuth
 from db_handler.user_db_handler import UserDBHandler
 from models.db_models.enums import RoleLevel
 from models.db_models.user import User
-from models.api_models.user_models import UserCreateRequest, UserUpdateRequest, UserLoginRequest, ChangePasswordRequest, AdminPasswordResetRequest
-
+from models.api_models.user_models import (
+    UserCreateRequest,
+    UserUpdateRequest,
+    UserLoginRequest,
+    ChangePasswordRequest,
+    AdminPasswordResetRequest,
+    UserResponse
+)
 
 class UserService:
     """Business logic for user and auth endpoints."""
 
     @staticmethod
-    async def get_users(roles: list[RoleLevel] | None = None) -> list[User]:
-        return await UserDBHandler.list_users(roles)
+    async def get_users(page: int, page_size: int, roles: list[RoleLevel] | None = None) -> dict:
+        normalized_page_size = normalize_page_size(page_size)
+        users, total = await UserDBHandler.list_users_paginated(page, normalized_page_size, roles)
+        return {
+            "items": [
+                UserResponse(
+                    id=str(user.id),
+                    name=user.name,
+                    phone_number=user.phone_number,
+                    email=user.email,
+                    role=user.role,
+                    is_active=user.is_active,
+                    created_at=user.created_at,
+                ).model_dump(mode="json")
+                for user in users
+            ],
+            **build_pagination(page, normalized_page_size, total),
+        }
 
     @staticmethod
     async def get_user_by_id(user_id: UUID) -> User:

@@ -83,3 +83,13 @@ class MessageResponse(BaseModel):
     """Simple message response payload."""
 
     message: str
+
+
+class UserListResponse(BaseModel):
+    """Paginated user list response payload."""
+
+    items: list[UserResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

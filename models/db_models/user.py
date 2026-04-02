@@ -21,8 +21,8 @@ class User(Base):
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    created_qrs = relationship("QRCode", foreign_keys="QRCode.registered_by")
-    enabled_qrs = relationship("QRCode", foreign_keys="QRCode.enabled_by")
+    created_qrs = relationship("QRCode", foreign_keys="QRCode.registered_by", overlaps="creator")
+    enabled_qrs = relationship("QRCode", foreign_keys="QRCode.enabled_by", overlaps="enabler")
 
     def __repr__(self):
         return f"<User(id={self.id}, email={self.email}, role={self.role})>"

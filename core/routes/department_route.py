@@ -1,13 +1,15 @@
 """Department API routes for create and update operations."""
 from typing import Annotated
 from uuid import UUID
-from fastapi import APIRouter, Depends, Path, status
+from fastapi import APIRouter, Depends, Path, Query, status
 from auth.cookie_auth import require_valid_auth_cookie
+from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from core.services.department_service import DepartmentService
 from models.api_models.department_models import (
     DepartmentCreateRequest,
     DepartmentUpdateRequest,
     DepartmentResponse,
+    DepartmentListResponse,
 )
 
 
@@ -24,13 +26,16 @@ def _to_department_response(department) -> DepartmentResponse:
     )
 
 
-@department_router.get("", response_model=list[DepartmentResponse])
+@department_router.get("", response_model=DepartmentListResponse)
 async def get_departments(
     _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
 ):
     """Get all departments endpoint."""
-    departments = await DepartmentService.get_departments()
-    return [_to_department_response(department) for department in departments]
+    result = await DepartmentService.get_departments(page, page_size)
+    result["items"] = [_to_department_response(department) for department in result["items"]]
+    return result
 
 
 @department_router.post("", response_model=DepartmentResponse, status_code=status.HTTP_201_CREATED)

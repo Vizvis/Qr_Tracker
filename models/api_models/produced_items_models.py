@@ -14,4 +14,18 @@ class ProducedItemResponse(BaseModel):
     department_id: str
     general_remarks: str | None
     issue_remarks: str | None
+    created_by: str | None
+    updated_by: str | None
+    remark_by: str | None
+    remark_updated: str | None
     created_at: datetime
+
+
+class ProducedItemsPaginatedResponse(BaseModel):
+    """Paginated grouped produced-items response."""
+
+    items: dict[str, list[ProducedItemResponse]]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

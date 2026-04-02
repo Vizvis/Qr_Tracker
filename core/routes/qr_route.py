@@ -1,16 +1,19 @@
 """QR Code API routes."""
-from fastapi import APIRouter, status, Depends, Path
+from fastapi import APIRouter, status, Depends, Path, Query
 from core.services.qr_service import QRService
 from models.api_models.qr_models import (
     QRCodeCreateRequest,
     QRCodeStatusUpdate,
     QRTagStatusUpdate,
+    QRCodeToggleRequest,
     QRCodeResponse,
     QRSessionFinalizeResponse,
+    QRCodeListResponse,
 )
 from typing import Annotated
 from uuid import UUID
 from auth.dependencies import require_admin, require_supervisor
+from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 qr_router = APIRouter(prefix="/api/qr", tags=["QR Codes"])
 
@@ -25,12 +28,15 @@ async def create_qr(
     return qr_code
 
 
-@qr_router.get("", response_model=list[QRCodeResponse])
+@qr_router.get("", response_model=QRCodeListResponse)
 async def get_all_qrs(
-    current_user_id: UUID = Depends(require_supervisor)
+    current_user_id: UUID = Depends(require_supervisor),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ):
     """Get all QR codes (Supervisor+)."""
-    return await QRService.get_all_qrs()
+    _ = current_user_id
+    return await QRService.get_all_qrs_paginated(page, page_size)
 
 
 @qr_router.get("/{id}", response_model=QRCodeResponse)
@@ -71,6 +77,22 @@ async def update_qr_status(
     """Set QR Code status to active or inactive via PUT request (Supervisor+)."""
     await QRService.update_qr_status(id, payload.status.lower(), payload, current_user_id=current_user_id)
     return {"detail": "Tag status updated successfully"}
+
+@qr_router.post("/enable", response_model=QRCodeResponse)
+async def enable_qr_by_input(
+    payload: QRCodeToggleRequest,
+    current_user_id: UUID = Depends(require_supervisor),
+):
+    """Enable QR code from user_id and qr_code_id payload (Supervisor+)."""
+    return await QRService.enable_qr_from_input(payload, current_user_id=current_user_id)
+
+@qr_router.post("/disable", response_model=QRCodeResponse)
+async def disable_qr_by_input(
+    payload: QRCodeToggleRequest,
+    current_user_id: UUID = Depends(require_supervisor),
+):
+    """Disable QR code from user_id and qr_code_id payload (Supervisor+)."""
+    return await QRService.disable_qr_from_input(payload, current_user_id=current_user_id)
 
 
 @qr_router.post("/{id}/finish-session", response_model=QRSessionFinalizeResponse)
