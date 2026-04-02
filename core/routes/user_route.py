@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
-from auth.dependencies import get_current_user_token
+from auth.dependencies import get_current_user_token, require_role
 from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from core.services.user_service import UserService
 from models.db_models.enums import RoleLevel
@@ -220,3 +220,13 @@ async def get_user_by_id(
         is_active=user.is_active,
         created_at=user.created_at,
     )
+
+
+@user_router.delete("/{id}", response_model=dict, status_code=status.HTTP_200_OK)
+async def delete_user_by_id(
+    id: Annotated[UUID, Path(..., description="The ID of the user to delete")],
+    current_user_id: UUID = Depends(require_role(["admin"]))
+):
+    """Delete a user from the system by ID (Admin only)."""
+    await UserService.delete_user_by_id(id)
+    return {"detail": "User successfully deleted"}

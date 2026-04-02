@@ -1,5 +1,5 @@
 from .base import Base
-from .enums import RoleLevel, DepartmentEnum, DepartmentStatus
+from .enums import RoleLevel, DepartmentStatus
 from .user import User
 from .qr_code import QRCode
 from .department import Department
@@ -9,7 +9,6 @@ from .remarks import Remarks
 __all__ = [
     "Base",
     "RoleLevel",
-    "DepartmentEnum",
     "DepartmentStatus",
     "User",
     "QRCode",

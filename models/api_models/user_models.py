@@ -61,14 +61,22 @@ class UserResponse(BaseModel):
     @field_validator("role", mode="before")
     @classmethod
     def serialize_role(cls, v):
-        val = v.value if hasattr(v, "value") else str(v)
+        if isinstance(v, int):
+            return v
+        
+        # Handle string floats or int formats implicitly sent from DB
+        val_str = str(v.value if hasattr(v, "value") else v).lower().replace("rolelevel.", "").strip()
+        
+        if val_str.isdigit():
+            return int(val_str)
+            
         role_map = {
             "admin": 3,
             "supervisor": 2,
             "operator": 1,
             "viewer": 0,
         }
-        return role_map.get(val, 0)
+        return role_map.get(val_str, 0)
 
 
 class AuthResponse(BaseModel):

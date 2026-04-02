@@ -1,14 +1,15 @@
 """Pydantic API models for department endpoints."""
 from datetime import datetime
 from uuid import UUID
-from pydantic import BaseModel
-from models.db_models.enums import DepartmentEnum, DepartmentStatus
+from pydantic import BaseModel, ConfigDict
+from models.db_models.enums import DepartmentStatus
 
 
 class DepartmentCreateRequest(BaseModel):
     """Request body for creating a department."""
 
-    dept_type: DepartmentEnum
+    name: str
+    sequence_order: int = 0
     status: DepartmentStatus = DepartmentStatus.ACTIVE
     head_of_department: UUID | None = None
 
@@ -16,16 +17,19 @@ class DepartmentCreateRequest(BaseModel):
 class DepartmentUpdateRequest(BaseModel):
     """Request body for updating a department."""
 
-    dept_type: DepartmentEnum | None = None
+    name: str | None = None
+    sequence_order: int | None = None
     status: DepartmentStatus | None = None
     head_of_department: UUID | None = None
 
 
 class DepartmentResponse(BaseModel):
     """Public department response model."""
+    model_config = ConfigDict(from_attributes=True)
 
     id: str
-    dept_type: DepartmentEnum
+    name: str
+    sequence_order: int
     status: DepartmentStatus
     head_of_department: str | None
     created_on: datetime

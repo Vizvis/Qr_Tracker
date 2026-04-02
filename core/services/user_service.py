@@ -162,6 +162,22 @@ class UserService:
             )
 
     @staticmethod
+    async def delete_user_by_id(user_id: UUID) -> None:
+        import sqlalchemy.exc
+        try:
+            deleted = await UserDBHandler.delete(user_id)
+            if not deleted:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail="User not found",
+                )
+        except sqlalchemy.exc.IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Cannot delete user because they have associated records in the system.",
+            )
+
+    @staticmethod
     async def change_password(user_id: UUID, payload: ChangePasswordRequest) -> None:
         user = await UserDBHandler.get_by_id(user_id)
         if user is None:

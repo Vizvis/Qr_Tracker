@@ -40,12 +40,12 @@ class SessionDBHandler:
             await db.refresh(remark)
 
             result = await db.execute(
-                select(Department.dept_type)
+                select(Department.name)
                 .where(Department.id == department_id)
                 .limit(1)
             )
-            dept_type = result.scalar_one_or_none()
-            return (remark, dept_type.value if dept_type is not None else None)
+            dept_name = result.scalar_one_or_none()
+            return (remark, dept_name if dept_name is not None else None)
 
     @staticmethod
     async def get_by_id(remark_id: UUID) -> Remarks | None:
@@ -59,7 +59,7 @@ class SessionDBHandler:
         async with db_manager.session_factory() as db:
             total = await db.scalar(select(func.count()).select_from(Remarks))
             result = await db.execute(
-                select(Remarks, Department.dept_type)
+                select(Remarks, Department.name)
                 .outerjoin(Department, Remarks.department_id == Department.id)
                 .order_by(Remarks.created_at.desc())
                 .offset(offset)
@@ -67,8 +67,8 @@ class SessionDBHandler:
             )
             rows = result.all()
             return [
-                (remark, dept_type.value if dept_type is not None else None)
-                for remark, dept_type in rows
+                (remark, dept_name if dept_name is not None else None)
+                for remark, dept_name in rows
             ], int(total or 0)
 
     @staticmethod
@@ -97,12 +97,12 @@ class SessionDBHandler:
             await db.refresh(remark)
 
             result = await db.execute(
-                select(Department.dept_type)
+                select(Department.name)
                 .where(Department.id == remark.department_id)
                 .limit(1)
             )
-            dept_type = result.scalar_one_or_none()
-            return (remark, dept_type.value if dept_type is not None else None)
+            dept_name = result.scalar_one_or_none()
+            return (remark, dept_name if dept_name is not None else None)
 
     @staticmethod
     async def has_department_update(qr_id: str, department_id: UUID) -> bool:
@@ -131,22 +131,22 @@ class SessionDBHandler:
     async def list_remarks_by_qr_id(qr_id: str) -> list[tuple[Remarks, str | None]]:
         async with db_manager.session_factory() as db:
             result = await db.execute(
-                select(Remarks, Department.dept_type)
+                select(Remarks, Department.name)
                 .outerjoin(Department, Remarks.department_id == Department.id)
                 .where(cast(Remarks.qr_id, SQLString) == qr_id)
                 .order_by(Remarks.created_at.asc())
             )
             rows = result.all()
             return [
-                (remark, dept_type.value if dept_type is not None else None)
-                for remark, dept_type in rows
+                (remark, dept_name if dept_name is not None else None)
+                for remark, dept_name in rows
             ]
 
     @staticmethod
     async def get_latest_remark_by_qr_id(qr_id: str) -> tuple[Remarks, str | None] | None:
         async with db_manager.session_factory() as db:
             result = await db.execute(
-                select(Remarks, Department.dept_type)
+                select(Remarks, Department.name)
                 .outerjoin(Department, Remarks.department_id == Department.id)
                 .where(cast(Remarks.qr_id, SQLString) == qr_id)
                 .order_by(desc(Remarks.created_at))
@@ -156,8 +156,8 @@ class SessionDBHandler:
             if row is None:
                 return None
 
-            remark, dept_type = row
-            return (remark, dept_type.value if dept_type is not None else None)
+            remark, dept_name = row
+            return (remark, dept_name if dept_name is not None else None)
 
     @staticmethod
     async def list_active_qr_remarks(page: int, page_size: int) -> tuple[list[dict], int]:
@@ -182,7 +182,7 @@ class SessionDBHandler:
             qr_ids = [qr.id for qr in active_qrs]
             rows = (
                 await db.execute(
-                    select(Remarks, Department.dept_type)
+                    select(Remarks, Department.name)
                     .outerjoin(Department, Remarks.department_id == Department.id)
                     .where(Remarks.qr_id.in_(qr_ids))
                     .order_by(Remarks.created_at.asc())
@@ -190,14 +190,14 @@ class SessionDBHandler:
             ).all()
 
             remarks_by_qr: dict[str, list[dict]] = {qr_id: [] for qr_id in qr_ids}
-            for remark, dept_type in rows:
+            for remark, dept_name in rows:
                 remarks_by_qr.setdefault(str(remark.qr_id), []).append(
                     {
                         "id": str(remark.id),
                         "qr_id": str(remark.qr_id),
                         "item_id": remark.item_id,
                         "department_id": str(remark.department_id) if remark.department_id else None,
-                        "department": dept_type.value if dept_type is not None else None,
+                        "department": dept_name if dept_name is not None else None,
                         "general_remarks": remark.general_remarks,
                         "issue_remarks": remark.issue_remarks,
                         "remark_by": str(remark.remark_by) if remark.remark_by else None,
