@@ -4,6 +4,7 @@ from core.services.qr_service import QRService
 from models.api_models.qr_models import (
     QRCodeCreateRequest,
     QRCodeStatusUpdate,
+    QRCodeToggleRequest,
     QRCodeResponse,
     QRSessionFinalizeResponse,
     QRCodeListResponse,
@@ -63,6 +64,24 @@ async def disable_qr(
 ):
     """Set QR Code status to inactive (Supervisor+)."""
     return await QRService.update_qr_status(id, "inactive", payload, current_user_id=current_user_id)
+
+
+@qr_router.post("/enable", response_model=QRCodeResponse)
+async def enable_qr_by_input(
+    payload: QRCodeToggleRequest,
+    current_user_id: UUID = Depends(require_supervisor),
+):
+    """Enable QR code from user_id and qr_code_id payload (Supervisor+)."""
+    return await QRService.enable_qr_from_input(payload, current_user_id=current_user_id)
+
+
+@qr_router.post("/disable", response_model=QRCodeResponse)
+async def disable_qr_by_input(
+    payload: QRCodeToggleRequest,
+    current_user_id: UUID = Depends(require_supervisor),
+):
+    """Disable QR code from user_id and qr_code_id payload (Supervisor+)."""
+    return await QRService.disable_qr_from_input(payload, current_user_id=current_user_id)
 
 
 @qr_router.post("/{id}/finish-session", response_model=QRSessionFinalizeResponse)

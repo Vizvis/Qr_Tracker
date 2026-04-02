@@ -25,6 +25,8 @@ def _group_by_item_id(items) -> dict[str, list[ProducedItemResponse]]:
                 department_id=str(item.department_id),
                 general_remarks=item.general_remarks,
                 issue_remarks=item.issue_remarks,
+                created_by=str(item.created_by) if item.created_by else None,
+                updated_by=str(item.updated_by) if item.updated_by else None,
                 remark_by=str(item.remark_by) if item.remark_by else None,
                 remark_updated=str(item.remark_updated) if item.remark_updated else None,
                 created_at=item.created_at,

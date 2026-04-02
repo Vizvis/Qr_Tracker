@@ -14,6 +14,8 @@ class ProducedItemResponse(BaseModel):
     department_id: str
     general_remarks: str | None
     issue_remarks: str | None
+    created_by: str | None
+    updated_by: str | None
     remark_by: str | None
     remark_updated: str | None
     created_at: datetime

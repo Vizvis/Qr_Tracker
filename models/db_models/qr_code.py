@@ -15,12 +15,15 @@ class QRCode(Base):
     registered_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     enabled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     enabled_at = Column(DateTime, nullable=True)
+    disabled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    disabled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
     notes = Column(String, nullable=True)
 
     # Relationships
     creator = relationship("User", foreign_keys=[registered_by], overlaps="created_qrs")
     enabler = relationship("User", foreign_keys=[enabled_by], overlaps="enabled_qrs")
+    disabler = relationship("User", foreign_keys=[disabled_by])
     produced_items = relationship("ProducedItems", back_populates="qr_code")
     remarks = relationship("Remarks", back_populates="qr_code")
 

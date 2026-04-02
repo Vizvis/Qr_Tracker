@@ -59,9 +59,11 @@ class QRDBHandler:
             if new_status == "active":
                 qr_code.enabled_by = action_by
                 qr_code.enabled_at = datetime.utcnow()
+                qr_code.disabled_by = None
+                qr_code.disabled_at = None
             elif new_status == "inactive":
-                qr_code.enabled_by = None
-                qr_code.enabled_at = None
+                qr_code.disabled_by = action_by
+                qr_code.disabled_at = datetime.utcnow()
 
             await db.commit()
             await db.refresh(qr_code)
@@ -92,6 +94,8 @@ class QRDBHandler:
                     department_id=remark.department_id,
                     general_remarks=remark.general_remarks,
                     issue_remarks=remark.issue_remarks,
+                    created_by=remark.remark_by,
+                    updated_by=remark.remark_updated,
                     remark_by=remark.remark_by,
                     remark_updated=remark.remark_updated,
                     created_at=remark.created_at,

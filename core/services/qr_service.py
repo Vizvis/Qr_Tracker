@@ -3,7 +3,7 @@ from fastapi import HTTPException, status
 from core.pagination import build_pagination, normalize_page_size
 from db_handler.qr_db_handler import QRDBHandler
 from models.db_models.qr_code import QRCode
-from models.api_models.qr_models import QRCodeCreateRequest, QRCodeStatusUpdate
+from models.api_models.qr_models import QRCodeCreateRequest, QRCodeStatusUpdate, QRCodeToggleRequest
 from uuid import UUID
 
 
@@ -43,6 +43,8 @@ class QRService:
                     "registered_by": qr.registered_by,
                     "enabled_by": qr.enabled_by,
                     "enabled_at": qr.enabled_at,
+                    "disabled_by": qr.disabled_by,
+                    "disabled_at": qr.disabled_at,
                     "created_at": qr.created_at,
                     "notes": qr.notes,
                 }
@@ -106,3 +108,33 @@ class QRService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=str(exc),
             ) from exc
+
+    @staticmethod
+    async def enable_qr_from_input(payload: QRCodeToggleRequest, current_user_id: UUID) -> QRCode:
+        if payload.user_id != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="user_id must match the authenticated user.",
+            )
+
+        return await QRService.update_qr_status(
+            qr_id=payload.qr_code_id,
+            new_status="active",
+            payload=QRCodeStatusUpdate(notes=payload.notes),
+            current_user_id=current_user_id,
+        )
+
+    @staticmethod
+    async def disable_qr_from_input(payload: QRCodeToggleRequest, current_user_id: UUID) -> QRCode:
+        if payload.user_id != current_user_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="user_id must match the authenticated user.",
+            )
+
+        return await QRService.update_qr_status(
+            qr_id=payload.qr_code_id,
+            new_status="inactive",
+            payload=QRCodeStatusUpdate(notes=payload.notes),
+            current_user_id=current_user_id,
+        )
