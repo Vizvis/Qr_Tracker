@@ -19,8 +19,8 @@ class QRCode(Base):
     notes = Column(String, nullable=True)
 
     # Relationships
-    creator = relationship("User", foreign_keys=[registered_by])
-    enabler = relationship("User", foreign_keys=[enabled_by])
+    creator = relationship("User", foreign_keys=[registered_by], overlaps="created_qrs")
+    enabler = relationship("User", foreign_keys=[enabled_by], overlaps="enabled_qrs")
     produced_items = relationship("ProducedItems", back_populates="qr_code")
     remarks = relationship("Remarks", back_populates="qr_code")
 

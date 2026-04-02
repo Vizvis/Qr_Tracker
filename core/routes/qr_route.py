@@ -1,14 +1,16 @@
 """QR Code API routes."""
-from fastapi import APIRouter, status, Depends
+from fastapi import APIRouter, status, Depends, Query
 from core.services.qr_service import QRService
 from models.api_models.qr_models import (
     QRCodeCreateRequest,
     QRCodeStatusUpdate,
     QRCodeResponse,
     QRSessionFinalizeResponse,
+    QRCodeListResponse,
 )
 from uuid import UUID
 from auth.dependencies import require_admin, require_supervisor
+from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 
 qr_router = APIRouter(prefix="/api/qr", tags=["QR Codes"])
 
@@ -23,12 +25,15 @@ async def create_qr(
     return qr_code
 
 
-@qr_router.get("", response_model=list[QRCodeResponse])
+@qr_router.get("", response_model=QRCodeListResponse)
 async def get_all_qrs(
-    current_user_id: UUID = Depends(require_supervisor)
+    current_user_id: UUID = Depends(require_supervisor),
+    page: int = Query(1, ge=1),
+    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ):
     """Get all QR codes (Supervisor+)."""
-    return await QRService.get_all_qrs()
+    _ = current_user_id
+    return await QRService.get_all_qrs_paginated(page, page_size)
 
 
 @qr_router.get("/{id}", response_model=QRCodeResponse)

@@ -1,6 +1,7 @@
 """Department service layer for business logic workflows."""
 from uuid import UUID
 from fastapi import HTTPException, status
+from core.pagination import build_pagination, normalize_page_size
 from db_handler.department_db_handler import DepartmentDBHandler
 from models.db_models.department import Department
 from models.api_models.department_models import DepartmentCreateRequest, DepartmentUpdateRequest
@@ -10,8 +11,13 @@ class DepartmentService:
     """Business logic for department endpoints."""
 
     @staticmethod
-    async def get_departments() -> list[Department]:
-        return await DepartmentDBHandler.list_all()
+    async def get_departments(page: int, page_size: int) -> dict:
+        normalized_page_size = normalize_page_size(page_size)
+        departments, total = await DepartmentDBHandler.list_paginated(page, normalized_page_size)
+        return {
+            "items": departments,
+            **build_pagination(page, normalized_page_size, total),
+        }
 
     @staticmethod
     async def get_department_by_id(department_id: UUID) -> Department:

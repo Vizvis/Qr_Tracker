@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
+from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from core.services.user_service import UserService
 from models.db_models.enums import RoleLevel
 from models.api_models.user_models import (
@@ -13,15 +14,18 @@ from models.api_models.user_models import (
     UserResponse,
     AuthResponse,
     MessageResponse,
+    UserListResponse,
 )
 
 
 user_router = APIRouter(prefix="/api/users", tags=["Users"])
 
 
-@user_router.get("", response_model=list[UserResponse])
+@user_router.get("", response_model=UserListResponse)
 async def get_users(
     _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    page: Annotated[int, Query(ge=1)] = 1,
+    page_size: Annotated[int, Query(ge=1, le=MAX_PAGE_SIZE)] = DEFAULT_PAGE_SIZE,
     roles: Annotated[
         list[str] | None,
         Query(description="Optional role filters. Supports repeated params or comma-separated values."),
@@ -39,19 +43,7 @@ async def get_users(
             )
         parsed_roles = [RoleLevel(token) for token in tokens]
 
-    users = await UserService.get_users(parsed_roles)
-    return [
-        UserResponse(
-            id=str(user.id),
-            name=user.name,
-            phone_number=user.phone_number,
-            email=user.email,
-            role=user.role,
-            is_active=user.is_active,
-            created_at=user.created_at,
-        )
-        for user in users
-    ]
+    return await UserService.get_users(page, page_size, parsed_roles)
 
 
 @user_router.post("/login", response_model=AuthResponse)

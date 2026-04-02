@@ -1,5 +1,6 @@
 """QR Code service layer for business logic workflows."""
 from fastapi import HTTPException, status
+from core.pagination import build_pagination, normalize_page_size
 from db_handler.qr_db_handler import QRDBHandler
 from models.db_models.qr_code import QRCode
 from models.api_models.qr_models import QRCodeCreateRequest, QRCodeStatusUpdate
@@ -29,6 +30,26 @@ class QRService:
     @staticmethod
     async def get_all_qrs() -> list[QRCode]:
         return await QRDBHandler.get_all()
+
+    @staticmethod
+    async def get_all_qrs_paginated(page: int, page_size: int) -> dict:
+        normalized_page_size = normalize_page_size(page_size)
+        qrs, total = await QRDBHandler.list_paginated(page, normalized_page_size)
+        return {
+            "items": [
+                {
+                    "id": qr.id,
+                    "status": qr.status,
+                    "registered_by": qr.registered_by,
+                    "enabled_by": qr.enabled_by,
+                    "enabled_at": qr.enabled_at,
+                    "created_at": qr.created_at,
+                    "notes": qr.notes,
+                }
+                for qr in qrs
+            ],
+            **build_pagination(page, normalized_page_size, total),
+        }
 
     @staticmethod
     async def get_qr_by_id(qr_id: str) -> QRCode:

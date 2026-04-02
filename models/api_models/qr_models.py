@@ -38,3 +38,13 @@ class QRSessionFinalizeResponse(BaseModel):
     qr_id: str
     moved_count: int
     message: str
+
+
+class QRCodeListResponse(BaseModel):
+    """Paginated QR code list response payload."""
+
+    items: list[QRCodeResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int

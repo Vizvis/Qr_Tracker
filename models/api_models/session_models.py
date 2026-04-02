@@ -46,6 +46,8 @@ class SessionRemarkResponse(BaseModel):
     department: str | None
     general_remarks: str | None
     issue_remarks: str | None
+    remark_by: str | None
+    remark_updated: str | None
     created_at: datetime | None
 
 
@@ -57,3 +59,15 @@ class ActiveQRRemarksResponse(BaseModel):
     enabled_at: datetime | None
     notes: str | None
     remarks: list[SessionRemarkResponse]
+
+
+class ActiveQRRemarksListResponse(BaseModel):
+    """Paginated active QR remarks response payload."""
+
+    items: list[ActiveQRRemarksResponse]
+    page: int
+    page_size: int
+    total: int
+    total_pages: int
+    count: int
+    active_qrs: list[ActiveQRRemarksResponse]
