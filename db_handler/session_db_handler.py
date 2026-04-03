@@ -104,8 +104,8 @@ class SessionDBHandler:
             if current_user_id is not None:
                 remark.remark_updated = current_user_id
 
-            # Update the updated_at manually to be timezone aware
-            remark.updated_at = datetime.now(timezone.utc)
+            # updated_at must be timezone-naive to match the DB column
+            remark.updated_at = datetime.utcnow()
 
             try:
                 await db.commit()

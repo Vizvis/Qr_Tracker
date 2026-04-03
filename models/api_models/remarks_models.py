@@ -12,6 +12,7 @@ class RemarkCreateRequest(BaseModel):
     department_id: UUID
     general_remarks: str | None = Field(default=None, max_length=1000)
     issue_remarks: str | None = Field(default=None, max_length=1000)
+    custom_data: dict | None = Field(default_factory=dict)
 
     @field_validator("qr_id", "item_id")
     @classmethod
@@ -27,12 +28,12 @@ class RemarkCreateRequest(BaseModel):
         if value is None:
             return None
         trimmed = value.strip()
-        return trimmed or None
+        return trimmed
 
     @model_validator(mode="after")
     def require_some_remark(self):
-        if not self.general_remarks and not self.issue_remarks:
-            raise ValueError("At least one remark field is required.")
+        if not self.general_remarks and not self.issue_remarks and not self.custom_data:
+            raise ValueError("At least one remark field or custom_data is required.")
         return self
 
 
@@ -43,6 +44,7 @@ class RemarkUpdateRequest(BaseModel):
     department_id: UUID | None = None
     general_remarks: str | None = Field(default=None, max_length=1000)
     issue_remarks: str | None = Field(default=None, max_length=1000)
+    custom_data: dict | None = None
 
     @field_validator("item_id")
     @classmethod
@@ -50,7 +52,7 @@ class RemarkUpdateRequest(BaseModel):
         if value is None:
             return None
         trimmed = value.strip()
-        return trimmed or None
+        return trimmed
 
     @field_validator("general_remarks", "issue_remarks")
     @classmethod
@@ -58,7 +60,7 @@ class RemarkUpdateRequest(BaseModel):
         if value is None:
             return None
         trimmed = value.strip()
-        return trimmed or None
+        return trimmed
 
     @model_validator(mode="after")
     def require_any_field(self):
@@ -67,6 +69,7 @@ class RemarkUpdateRequest(BaseModel):
             and self.department_id is None
             and self.general_remarks is None
             and self.issue_remarks is None
+            and self.custom_data is None
         ):
             raise ValueError("At least one field is required for update.")
         return self
@@ -84,6 +87,7 @@ class RemarkResponse(BaseModel):
     department: str | None
     general_remarks: str | None
     issue_remarks: str | None
+    custom_data: dict | None = Field(default_factory=dict)
     remarks_history: list[dict] | None = Field(default_factory=list)
     remark_by: str | None
     remark_updated: str | None

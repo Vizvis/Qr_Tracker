@@ -27,6 +27,7 @@ class SessionService:
             "department": department_name,
             "general_remarks": remark.general_remarks,
             "issue_remarks": remark.issue_remarks,
+            "custom_data": remark.custom_data if remark.custom_data is not None else {},
             "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
             "remark_by": str(remark.remark_by) if getattr(remark, "remark_by", None) is not None else None,
             "remark_updated": str(remark.remark_updated) if getattr(remark, "remark_updated", None) is not None else None,
@@ -82,6 +83,7 @@ class SessionService:
                 department_id=payload.department_id,
                 general_remarks=payload.general_remarks,
                 issue_remarks=payload.issue_remarks,
+                custom_data=payload.custom_data,
                 current_user_id=current_user_id,
             )
         except IntegrityError as exc:
@@ -101,6 +103,7 @@ class SessionService:
                 department_id=payload.department_id,
                 general_remarks=payload.general_remarks,
                 issue_remarks=payload.issue_remarks,
+                custom_data=payload.custom_data,
             ),
         )
 
@@ -114,26 +117,35 @@ class SessionService:
             )
 
         update_data = {}
-        if payload.item_id is not None:
+        set_fields = payload.model_fields_set
+
+        if "item_id" in set_fields:
             update_data["item_id"] = payload.item_id
-        if payload.department_id is not None:
-            department = await DepartmentDBHandler.get_by_id(payload.department_id)
-            if department is None:
-                raise HTTPException(
-                    status_code=status.HTTP_404_NOT_FOUND,
-                    detail="Department not found.",
-                )
-            department_status = getattr(department.status, "value", str(department.status)).lower()
-            if department_status != DepartmentStatus.ACTIVE.value:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Department is inactive.",
-                )
+
+        if "department_id" in set_fields:
+            if payload.department_id is not None:
+                department = await DepartmentDBHandler.get_by_id(payload.department_id)
+                if department is None:
+                    raise HTTPException(
+                        status_code=status.HTTP_404_NOT_FOUND,
+                        detail="Department not found.",
+                    )
+                department_status = getattr(department.status, "value", str(department.status)).lower()
+                if department_status != DepartmentStatus.ACTIVE.value:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail="Department is inactive.",
+                    )
             update_data["department_id"] = payload.department_id
-        if payload.general_remarks is not None:
+
+        if "general_remarks" in set_fields:
             update_data["general_remarks"] = payload.general_remarks
-        if payload.issue_remarks is not None:
+
+        if "issue_remarks" in set_fields:
             update_data["issue_remarks"] = payload.issue_remarks
+
+        if "custom_data" in set_fields:
+            update_data["custom_data"] = payload.custom_data
 
         if not update_data:
             raise HTTPException(

@@ -24,6 +24,7 @@ class Remarks(Base):
     department_id = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=True)
     general_remarks = Column(String, nullable=True)
     issue_remarks = Column(String, nullable=True)
+    custom_data = Column(JSONB, default=dict, server_default='{}', nullable=False)
     remarks_history = Column(JSONB, default=list, server_default='[]', nullable=False)
     remark_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     remark_updated = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
