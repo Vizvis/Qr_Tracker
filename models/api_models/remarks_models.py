@@ -2,8 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
-
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 class RemarkCreateRequest(BaseModel):
     """Request body for creating a remark."""
@@ -75,6 +74,8 @@ class RemarkUpdateRequest(BaseModel):
 
 class RemarkResponse(BaseModel):
     """Public remark response model."""
+    
+    model_config = ConfigDict(ser_json_timedelta='iso8601')
 
     id: str
     qr_id: str
@@ -83,9 +84,11 @@ class RemarkResponse(BaseModel):
     department: str | None
     general_remarks: str | None
     issue_remarks: str | None
+    remarks_history: list[dict] | None = Field(default_factory=list)
     remark_by: str | None
     remark_updated: str | None
     created_at: datetime | None
+    updated_at: datetime | None
 
 
 class RemarkListResponse(BaseModel):

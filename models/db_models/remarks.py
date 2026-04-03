@@ -1,7 +1,7 @@
 """Remarks model."""
 from datetime import datetime
 from sqlalchemy import Column, String, ForeignKey, DateTime, UniqueConstraint
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from uuid import uuid4
 from .base import Base
@@ -24,9 +24,11 @@ class Remarks(Base):
     department_id = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=True)
     general_remarks = Column(String, nullable=True)
     issue_remarks = Column(String, nullable=True)
+    remarks_history = Column(JSONB, default=list, server_default='[]', nullable=False)
     remark_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     remark_updated = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 
     qr_code = relationship("QRCode", back_populates="remarks")
     department = relationship("Department", back_populates="remarks")

@@ -66,3 +66,12 @@ class DepartmentService:
             )
 
         return updated_department
+
+    @staticmethod
+    async def delete_department(department_id: UUID) -> None:
+        deleted = await DepartmentDBHandler.delete(department_id)
+        if not deleted:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Department not found.",
+            )

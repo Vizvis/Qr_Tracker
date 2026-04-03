@@ -2,6 +2,7 @@
 from fastapi import HTTPException, status
 from uuid import UUID
 from sqlalchemy.exc import IntegrityError
+from datetime import timezone
 
 from core.pagination import build_pagination, normalize_page_size
 from db_handler.department_db_handler import DepartmentDBHandler
@@ -26,9 +27,11 @@ class SessionService:
             "department": department_name,
             "general_remarks": remark.general_remarks,
             "issue_remarks": remark.issue_remarks,
+            "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
             "remark_by": str(remark.remark_by) if getattr(remark, "remark_by", None) is not None else None,
             "remark_updated": str(remark.remark_updated) if getattr(remark, "remark_updated", None) is not None else None,
-            "created_at": remark.created_at.isoformat() if remark.created_at is not None else None,
+            "created_at": remark.created_at.replace(tzinfo=timezone.utc) if remark.created_at is not None else None,
+            "updated_at": remark.updated_at.replace(tzinfo=timezone.utc) if getattr(remark, 'updated_at', None) is not None else None,
         }
 
     @staticmethod

@@ -60,3 +60,15 @@ class DepartmentDBHandler:
             await db.commit()
             await db.refresh(department)
             return department
+
+    @staticmethod
+    async def delete(department_id: UUID) -> bool:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(select(Department).where(Department.id == department_id))
+            department = result.scalar_one_or_none()
+            if department is None:
+                return False
+                
+            await db.delete(department)
+            await db.commit()
+            return True

@@ -58,3 +58,12 @@ async def update_department(
     """Update department endpoint including active/inactive status."""
     department = await DepartmentService.update_department(department_id, payload)
     return _to_department_response(department)
+
+@department_router.delete("/{department_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_department(
+    department_id: Annotated[UUID, Path(..., description="Department ID")],
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Delete a department by ID."""
+    await DepartmentService.delete_department(department_id)
+

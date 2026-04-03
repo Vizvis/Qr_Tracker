@@ -2,7 +2,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator, model_validator, ConfigDict
 
 
 class SessionRemarkCreateRequest(BaseModel):
@@ -38,6 +38,7 @@ class SessionRemarkCreateRequest(BaseModel):
 
 class SessionRemarkResponse(BaseModel):
     """Response payload for a remark row."""
+    model_config = ConfigDict(ser_json_timedelta='iso8601')
 
     id: str
     qr_id: str
@@ -46,13 +47,15 @@ class SessionRemarkResponse(BaseModel):
     department: str | None
     general_remarks: str | None
     issue_remarks: str | None
+    remarks_history: list[dict] | None = Field(default_factory=list)
     remark_by: str | None
     remark_updated: str | None
     created_at: datetime | None
-
+    updated_at: datetime | None
 
 class ActiveQRRemarksResponse(BaseModel):
     """Response payload for active QR and their session remarks."""
+    model_config = ConfigDict(ser_json_timedelta='iso8601')
 
     qr_id: str
     status: str

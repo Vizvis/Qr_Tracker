@@ -9,6 +9,8 @@ from models.db_models.qr_code import QRCode
 from models.db_models.remarks import Remarks
 
 
+from datetime import datetime, timezone
+
 class SessionDBHandler:
     """Handles remark retrieval by qr_id for session endpoints."""
 
@@ -83,11 +85,27 @@ class SessionDBHandler:
             if remark is None:
                 return None
 
+            # Append current state to history
+            history_entry = {
+                "date": remark.updated_at.isoformat() if getattr(remark, 'updated_at', None) else remark.created_at.isoformat(),
+                "general_remarks": remark.general_remarks,
+                "issue_remarks": remark.issue_remarks
+            }
+            
+            # Using simple list manipulation since JSONB is returned as a list
+            current_history = list(remark.remarks_history) if remark.remarks_history else []
+            current_history.append(history_entry)
+            remark.remarks_history = current_history
+
+            # Apply new updates
             for field, value in update_data.items():
                 setattr(remark, field, value)
 
             if current_user_id is not None:
                 remark.remark_updated = current_user_id
+
+            # Update the updated_at manually to be timezone aware
+            remark.updated_at = datetime.now(timezone.utc)
 
             try:
                 await db.commit()
@@ -200,9 +218,11 @@ class SessionDBHandler:
                         "department": dept_name if dept_name is not None else None,
                         "general_remarks": remark.general_remarks,
                         "issue_remarks": remark.issue_remarks,
+                        "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
                         "remark_by": str(remark.remark_by) if remark.remark_by else None,
-                        "remark_updated": str(remark.remark_updated) if remark.remark_updated else None,
-                        "created_at": remark.created_at,
+                        "remark_updated": str(remark.remark_updated) if getattr(remark, 'remark_updated', None) else None,
+                        "created_at": remark.created_at.replace(tzinfo=timezone.utc) if remark.created_at else None,
+                        "updated_at": remark.updated_at.replace(tzinfo=timezone.utc) if getattr(remark, 'updated_at', None) else None,
                     }
                 )
 
@@ -210,7 +230,7 @@ class SessionDBHandler:
                 {
                     "qr_id": qr.id,
                     "status": qr.status,
-                    "enabled_at": qr.enabled_at,
+                    "enabled_at": qr.enabled_at.replace(tzinfo=timezone.utc) if qr.enabled_at else None,
                     "notes": qr.notes,
                     "remarks": remarks_by_qr.get(qr.id, []),
                 }
