@@ -56,7 +56,7 @@ def upgrade() -> None:
     op.alter_column('qr_codes', 'status',
                existing_type=sa.VARCHAR(),
                type_=sa.Enum('pending', 'active', 'inactive', name='qr_status'),
-               postgresql_using="lower(status)::qr_status",
+               postgresql_using="lower(status::text)::qr_status",
                nullable=False)
     op.alter_column('qr_codes', 'registered_by',
                existing_type=sa.UUID(),

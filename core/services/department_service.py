@@ -32,7 +32,8 @@ class DepartmentService:
     @staticmethod
     async def create_department(payload: DepartmentCreateRequest) -> Department:
         department = Department(
-            dept_type=payload.dept_type,
+            name=payload.name,
+            sequence_order=payload.sequence_order,
             status=payload.status,
             head_of_department=payload.head_of_department,
         )
@@ -48,8 +49,10 @@ class DepartmentService:
             )
 
         update_data = {}
-        if payload.dept_type is not None:
-            update_data["dept_type"] = payload.dept_type
+        if payload.name is not None:
+            update_data["name"] = payload.name
+        if payload.sequence_order is not None:
+            update_data["sequence_order"] = payload.sequence_order
         if payload.status is not None:
             update_data["status"] = payload.status
         if "head_of_department" in payload.model_fields_set:

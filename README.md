@@ -1,6 +1,3 @@
-<<<<<<< HEAD
-# Qr_Tracker
-=======
 # QR Tracker
 
 A FastAPI-based QR code tracking system for production process monitoring.
@@ -71,10 +68,12 @@ cp .env.example .env
 ```
 
 **For Cloud (Default)**:
+
 - Set `USE_LOCAL_DB=False`
 - Add your Supabase credentials (URL, password, etc.)
 
 **For Local Development**:
+
 - Set `USE_LOCAL_DB=True`
 - Ensure PostgreSQL is running locally
 
@@ -95,6 +94,7 @@ alembic upgrade head
 ## Database Models
 
 ### Models Included:
+
 - **User**: Users with roles (admin, supervisor, operator, viewer)
 - **QRCode**: QR code tracking with status (pending, active, inactive)
 - **Department**: Departments with types (production, QA, packaging, etc.)
@@ -122,4 +122,3 @@ No code changes needed - the config handles both automatically!
 2. Configure `.env` file with credentials
 3. Run migrations: `alembic upgrade head`
 4. Start building your FastAPI endpoints!
->>>>>>> ce9ebc9 (Initial commit)

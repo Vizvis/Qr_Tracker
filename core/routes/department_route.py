@@ -19,7 +19,8 @@ department_router = APIRouter(prefix="/api/departments", tags=["Departments"])
 def _to_department_response(department) -> DepartmentResponse:
     return DepartmentResponse(
         id=str(department.id),
-        dept_type=department.dept_type,
+        name=department.name,
+        sequence_order=department.sequence_order,
         status=department.status,
         head_of_department=str(department.head_of_department) if department.head_of_department else None,
         created_on=department.created_on,

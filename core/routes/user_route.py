@@ -4,7 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Response, status
 from auth.cookie_auth import CookieAuth, require_valid_auth_cookie
-from auth.dependencies import get_current_user_token
+from auth.dependencies import get_current_user_token, require_role
 from core.pagination import DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE
 from core.services.user_service import UserService
 from models.db_models.enums import RoleLevel
@@ -15,9 +15,10 @@ from models.api_models.user_models import (
     UserResponse,
     AuthResponse,
     MessageResponse,
+    ChangePasswordRequest,
+    AdminPasswordResetRequest,
     UserListResponse,
 )
-
 
 user_router = APIRouter(prefix="/api/users", tags=["Users"])
 
@@ -75,6 +76,35 @@ async def logout(
     """Logout endpoint and clear auth cookies."""
     CookieAuth.delete_auth_cookies(response)
     return MessageResponse(message="Logged out successfully.")
+
+
+@user_router.put("/me/password", response_model=MessageResponse)
+async def change_password(
+    payload: ChangePasswordRequest,
+    current_user: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Change logged-in user's password."""
+    user_id = UUID(current_user["user_id"])
+    await UserService.change_password(user_id, payload)
+    return MessageResponse(message="Password updated successfully.")
+
+
+@user_router.put("/{user_id}/reset-password", response_model=MessageResponse)
+async def admin_reset_password(
+    user_id: Annotated[UUID, Path(..., description="User ID")],
+    payload: AdminPasswordResetRequest,
+    current_user: Annotated[dict, Depends(require_valid_auth_cookie)],
+):
+    """Admin endpoint to arbitrarily change a user's password."""
+    role_str = str(current_user.get("role", "")).lower()
+    if role_str != "admin" and role_str != "rolelevel.admin":
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Forbidden: Admin privileges required.",
+        )
+    
+    await UserService.admin_reset_password(user_id, payload)
+    return MessageResponse(message="User password reset successfully.")
 
 
 @user_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -190,3 +220,13 @@ async def get_user_by_id(
         is_active=user.is_active,
         created_at=user.created_at,
     )
+
+
+@user_router.delete("/{id}", response_model=dict, status_code=status.HTTP_200_OK)
+async def delete_user_by_id(
+    id: Annotated[UUID, Path(..., description="The ID of the user to delete")],
+    current_user_id: UUID = Depends(require_role(["admin"]))
+):
+    """Delete a user from the system by ID (Admin only)."""
+    await UserService.delete_user_by_id(id)
+    return {"detail": "User successfully deleted"}

@@ -11,7 +11,7 @@ class DepartmentDBHandler:
     @staticmethod
     async def list_all() -> list[Department]:
         async with db_manager.session_factory() as db:
-            result = await db.execute(select(Department))
+            result = await db.execute(select(Department).order_by(Department.sequence_order.asc()))
             return list(result.scalars().all())
 
     @staticmethod
@@ -26,7 +26,7 @@ class DepartmentDBHandler:
             total = int(await db.scalar(select(func.count()).select_from(Department)) or 0)
             result = await db.execute(
                 select(Department)
-                .order_by(Department.created_on.desc())
+                .order_by(Department.sequence_order.asc())
                 .offset(offset)
                 .limit(page_size)
             )
