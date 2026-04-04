@@ -27,12 +27,14 @@ class RemarkCreateRequest(BaseModel):
     def trim_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        trimmed = value.strip()
-        return trimmed
+        return value.strip()
 
     @model_validator(mode="after")
     def require_some_remark(self):
-        if not self.general_remarks and not self.issue_remarks and not self.custom_data:
+        has_general = self.general_remarks is not None
+        has_issue = self.issue_remarks is not None
+        has_custom = bool(self.custom_data)
+        if not has_general and not has_issue and not has_custom:
             raise ValueError("At least one remark field or custom_data is required.")
         return self
 
@@ -59,8 +61,7 @@ class RemarkUpdateRequest(BaseModel):
     def trim_optional_text(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        trimmed = value.strip()
-        return trimmed
+        return value.strip()
 
     @model_validator(mode="after")
     def require_any_field(self):

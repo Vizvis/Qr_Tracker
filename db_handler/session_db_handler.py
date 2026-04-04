@@ -1,11 +1,12 @@
 """Database access layer for session-style remarks lookups."""
 from uuid import UUID
 
-from sqlalchemy import String as SQLString, cast, desc, func, select
+from sqlalchemy import String as SQLString, cast, delete, desc, func, select
 from sqlalchemy.exc import IntegrityError
 from db_handler.database import db_manager
 from models.db_models.department import Department
 from models.db_models.qr_code import QRCode
+from models.db_models.produced_items import ProducedItems
 from models.db_models.remarks import Remarks
 
 
@@ -21,6 +22,7 @@ class SessionDBHandler:
         department_id: UUID,
         general_remarks: str | None,
         issue_remarks: str | None,
+        custom_data: dict | None = None,
         current_user_id: UUID | None = None,
     ) -> tuple[Remarks, str | None]:
         async with db_manager.session_factory() as db:
@@ -30,6 +32,7 @@ class SessionDBHandler:
                 department_id=department_id,
                 general_remarks=general_remarks,
                 issue_remarks=issue_remarks,
+                custom_data=custom_data if custom_data is not None else {},
                 remark_by=current_user_id,
                 remark_updated=current_user_id,
             )
@@ -236,3 +239,61 @@ class SessionDBHandler:
                 }
                 for qr in active_qrs
             ], int(total or 0)
+
+    @staticmethod
+    async def release_session(qr_id: str, released_by: UUID) -> int:
+        """Archive remarks to produced_items, delete remarks, and set QR to inactive.
+
+        Returns the number of remarks archived.
+        Raises ValueError if the QR is not active or has no remarks.
+        """
+        async with db_manager.session_factory() as db:
+            # 1. Fetch the QR tag
+            qr_result = await db.execute(select(QRCode).where(QRCode.id == qr_id))
+            qr_code = qr_result.scalar_one_or_none()
+            if qr_code is None:
+                raise ValueError("QR Code not found.")
+            if str(qr_code.status) != "active":
+                raise ValueError("QR tag is not active — nothing to release.")
+
+            # 2. Fetch all remarks for this QR
+            remarks = (
+                await db.scalars(
+                    select(Remarks)
+                    .where(Remarks.qr_id == qr_id)
+                    .order_by(Remarks.created_at.asc())
+                )
+            ).all()
+
+            if not remarks:
+                raise ValueError("No remarks found for this QR session — nothing to archive.")
+
+            # 3. Copy each remark into produced_items
+            for remark in remarks:
+                produced_item = ProducedItems(
+                    qr_id=qr_id,
+                    item_id=remark.item_id,
+                    department_id=remark.department_id,
+                    general_remarks=remark.general_remarks,
+                    issue_remarks=remark.issue_remarks,
+                    created_by=remark.remark_by,
+                    updated_by=remark.remark_updated,
+                    remark_by=remark.remark_by,
+                    remark_updated=remark.remark_updated,
+                    created_at=remark.created_at,
+                )
+                db.add(produced_item)
+
+            # 4. Delete all remarks for this QR
+            await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
+
+            # 5. Reset QR tag to inactive
+            qr_code.status = "inactive"
+            qr_code.disabled_by = released_by
+            qr_code.disabled_at = datetime.utcnow()
+            qr_code.enabled_by = None
+            qr_code.enabled_at = None
+            qr_code.notes = None
+
+            await db.commit()
+            return len(remarks)

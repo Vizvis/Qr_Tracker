@@ -8,7 +8,7 @@ from core.pagination import build_pagination, normalize_page_size
 from db_handler.department_db_handler import DepartmentDBHandler
 from db_handler.qr_db_handler import QRDBHandler
 from db_handler.session_db_handler import SessionDBHandler
-from models.api_models.session_models import SessionRemarkCreateRequest
+from models.api_models.session_models import SessionRemarkCreateRequest, SessionRemarkUpdateRequest
 from models.api_models.remarks_models import RemarkCreateRequest, RemarkUpdateRequest
 from models.db_models.enums import DepartmentStatus
 from models.db_models.remarks import Remarks
@@ -108,6 +108,49 @@ class SessionService:
         )
 
     @staticmethod
+    async def update_session_remark(
+        qr_id: str, remark_id: UUID, current_user_id: UUID, payload: SessionRemarkUpdateRequest
+    ) -> dict:
+        """Update a remark via the session endpoint (PUT /session/{qr_id}/remarks/{remark_id})."""
+        remark = await SessionDBHandler.get_by_id(remark_id)
+        if remark is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Remark not found.",
+            )
+
+        # Ensure the remark actually belongs to this qr_id
+        if str(remark.qr_id) != qr_id:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Remark not found for this QR session.",
+            )
+
+        update_data = {
+            "general_remarks": payload.general_remarks,
+            "issue_remarks": payload.issue_remarks,
+        }
+
+        try:
+            updated_row, department_name = await SessionDBHandler.update_remark(
+                remark_id=remark_id,
+                update_data=update_data,
+                current_user_id=current_user_id,
+            )
+        except IntegrityError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Duplicate remark entry for the same QR, item, and department.",
+            ) from exc
+        if updated_row is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Remark not found.",
+            )
+
+        return SessionService._remark_to_dict(updated_row, department_name)
+
+    @staticmethod
     async def update_remark(remark_id: UUID, current_user_id: UUID, payload: RemarkUpdateRequest) -> dict:
         remark = await SessionDBHandler.get_by_id(remark_id)
         if remark is None:
@@ -180,7 +223,49 @@ class SessionService:
         return SessionService._remark_to_dict(updated_row, department_name)
 
     @staticmethod
+    async def release_session(qr_id: str, current_user_id: UUID) -> dict:
+        """Release a QR session: archive remarks, clear data, set QR inactive."""
+        qr_code = await QRDBHandler.get_by_id(qr_id)
+        if qr_code is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="QR Code not found.",
+            )
+
+        if str(qr_code.status) != "active":
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="QR tag is not active — nothing to release.",
+            )
+
+        try:
+            archived_count = await SessionDBHandler.release_session(qr_id, released_by=current_user_id)
+        except ValueError as exc:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=str(exc),
+            ) from exc
+
+        return {
+            "qr_id": qr_id,
+            "archived_count": archived_count,
+            "message": "Tag released and production data archived.",
+        }
+
+    @staticmethod
     async def get_session(qr_id: str) -> dict:
+        # Check if the QR exists and is active
+        qr_code = await QRDBHandler.get_by_id(qr_id)
+        if qr_code is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="QR Code not found.",
+            )
+
+        # Inactive QR → no active session to show
+        if str(qr_code.status) != "active":
+            return {"qr_id": qr_id, "remarks": []}
+
         remarks = await SessionDBHandler.list_remarks_by_qr_id(qr_id)
         return {
             "qr_id": qr_id,

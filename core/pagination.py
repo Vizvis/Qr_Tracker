@@ -1,7 +1,7 @@
 """Shared pagination helpers and limits."""
 
 DEFAULT_PAGE_SIZE = 10
-MAX_PAGE_SIZE = 10
+MAX_PAGE_SIZE = 50
 
 
 def normalize_page_size(page_size: int) -> int:

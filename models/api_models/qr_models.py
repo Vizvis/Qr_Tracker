@@ -46,12 +46,12 @@ class QRCodeResponse(BaseModel):
 
     id: str
     status: str
-    registered_by: UUID
-    enabled_by: UUID | None
+    registered_by: UUID | str
+    enabled_by: UUID | str | None
     enabled_at: datetime | None
-    disabled_by: UUID | None
+    disabled_by: UUID | str | None
     disabled_at: datetime | None
-    created_at: datetime
+    created_at: datetime | None
     notes: str | None
 
 

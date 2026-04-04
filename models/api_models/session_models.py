@@ -27,14 +27,23 @@ class SessionRemarkCreateRequest(BaseModel):
     def normalize_optional_remarks(cls, value: str | None) -> str | None:
         if value is None:
             return None
-        trimmed = value.strip()
-        return trimmed or None
+        return value.strip()
 
     @model_validator(mode="after")
     def ensure_any_remark_present(self):
-        if not self.general_remarks and not self.issue_remarks and not self.custom_data:
+        has_general = self.general_remarks is not None
+        has_issue = self.issue_remarks is not None
+        has_custom = bool(self.custom_data)
+        if not has_general and not has_issue and not has_custom:
             raise ValueError("At least one of general_remarks, issue_remarks, or custom_data is required.")
         return self
+
+
+class SessionRemarkUpdateRequest(BaseModel):
+    """Payload for updating a remark in an active QR session."""
+
+    general_remarks: str = Field(default="", max_length=1000)
+    issue_remarks: str = Field(default="", max_length=1000)  # empty string clears the error flag
 
 
 class SessionRemarkResponse(BaseModel):

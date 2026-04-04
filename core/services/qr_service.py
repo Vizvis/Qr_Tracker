@@ -35,21 +35,27 @@ class QRService:
     async def get_all_qrs_paginated(page: int, page_size: int) -> dict:
         normalized_page_size = normalize_page_size(page_size)
         qrs, total = await QRDBHandler.list_paginated(page, normalized_page_size)
+        items = []
+        for qr in qrs:
+            try:
+                items.append(
+                    {
+                        "id": qr.id,
+                        "status": str(qr.status) if qr.status else "inactive",
+                        "registered_by": qr.registered_by,
+                        "enabled_by": qr.enabled_by,
+                        "enabled_at": qr.enabled_at,
+                        "disabled_by": qr.disabled_by,
+                        "disabled_at": qr.disabled_at,
+                        "created_at": qr.created_at,
+                        "notes": qr.notes,
+                    }
+                )
+            except Exception:
+                # Skip malformed legacy records to avoid crashing the list
+                total = max(total - 1, 0)
         return {
-            "items": [
-                {
-                    "id": qr.id,
-                    "status": qr.status,
-                    "registered_by": qr.registered_by,
-                    "enabled_by": qr.enabled_by,
-                    "enabled_at": qr.enabled_at,
-                    "disabled_by": qr.disabled_by,
-                    "disabled_at": qr.disabled_at,
-                    "created_at": qr.created_at,
-                    "notes": qr.notes,
-                }
-                for qr in qrs
-            ],
+            "items": items,
             **build_pagination(page, normalized_page_size, total),
         }
 
