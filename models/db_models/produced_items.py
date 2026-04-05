@@ -14,7 +14,7 @@ class ProducedItems(Base):
 
     qr_id = Column(String, ForeignKey("qr_codes.id"), nullable=False)
     item_id = Column(String, nullable=False)
-    department_id = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=False)
+    department_name = Column(String, nullable=False)
     general_remarks = Column(String, nullable=True)
     issue_remarks = Column(String, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
@@ -25,7 +25,7 @@ class ProducedItems(Base):
 
     # Relationships
     qr_code = relationship("QRCode", back_populates="produced_items")
-    department = relationship("Department", back_populates="produced_items")
+
     creator = relationship("User", foreign_keys=[created_by])
     updater = relationship("User", foreign_keys=[updated_by])
 

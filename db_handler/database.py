@@ -26,7 +26,7 @@ class DatabaseManager:
         if self._engine is None:
             self._engine = create_async_engine(
                 DatabaseConfig.get_database_url(),
-                echo=True,  # Set to False in production
+                echo=False,
                 future=True,
             )
             

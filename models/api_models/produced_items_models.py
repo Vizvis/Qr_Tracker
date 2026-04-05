@@ -11,7 +11,7 @@ class ProducedItemResponse(BaseModel):
     produced_id: str
     qr_id: str
     item_id: str
-    department_id: str
+    department_name: str
     general_remarks: str | None
     issue_remarks: str | None
     created_by: str | None
@@ -29,3 +29,28 @@ class ProducedItemsPaginatedResponse(BaseModel):
     page_size: int
     total: int
     total_pages: int
+
+
+class ProductionHistoryItem(BaseModel):
+    """Single production history record (aggregated by item_id)."""
+    id: str
+    qr_id: str
+    batch_number: str | None
+    product_name: str | None
+    remarks_data: list[ProducedItemResponse]
+    activated_by: str | None
+    activated_at: datetime | None
+    released_by: str | None
+    released_at: datetime | None
+    total_departments: int
+    departments_with_issues: int
+    created_at: datetime | None
+
+
+class ProductionHistoryPaginatedResponse(BaseModel):
+    """Paginated production history response."""
+    items: list[ProductionHistoryItem]
+    total: int
+    page: int
+    size: int
+    pages: int

@@ -2,6 +2,7 @@
 Main FastAPI application entry point.
 """
 from datetime import datetime
+import os
 import traceback
 from typing import Annotated
 from fastapi import Depends, FastAPI, HTTPException, Request
@@ -99,12 +100,13 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Return detailed unhandled exception payload."""
+    is_debug = os.getenv("DEBUG", "false").lower() == "true"
     payload = ErrorResponse(
         error_type=exc.__class__.__name__,
-        detail=str(exc),
+        detail=str(exc) if is_debug else "Internal server error.",
         path=request.url.path,
         timestamp=datetime.utcnow(),
-        trace=traceback.format_exception(type(exc), exc, exc.__traceback__),
+        trace=traceback.format_exception(type(exc), exc, exc.__traceback__) if is_debug else None,
     )
     return JSONResponse(status_code=500, content=payload.model_dump(mode="json"))
 

@@ -3,6 +3,7 @@ from uuid import UUID
 from datetime import datetime
 from sqlalchemy import delete, func, select
 from db_handler.database import db_manager
+from models.db_models.department import Department
 from models.db_models.produced_items import ProducedItems
 from models.db_models.qr_code import QRCode
 from models.db_models.remarks import Remarks
@@ -84,14 +85,24 @@ class QRDBHandler:
             if not remarks:
                 return 0
 
+            # Resolve department names
+            dept_ids = list({r.department_id for r in remarks if r.department_id})
+            dept_name_map: dict = {}
+            if dept_ids:
+                dept_rows = await db.execute(
+                    select(Department.id, Department.name).where(Department.id.in_(dept_ids))
+                )
+                dept_name_map = {row.id: row.name for row in dept_rows.all()}
+
             for remark in remarks:
                 if remark.department_id is None:
                     raise ValueError("Department is required for all remarks before finishing session.")
 
+                dept_name = dept_name_map.get(remark.department_id, "Unknown")
                 produced_item = ProducedItems(
                     qr_id=qr_id,
                     item_id=remark.item_id,
-                    department_id=remark.department_id,
+                    department_name=dept_name,
                     general_remarks=remark.general_remarks,
                     issue_remarks=remark.issue_remarks,
                     created_by=remark.remark_by,

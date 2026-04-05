@@ -247,13 +247,18 @@ class SessionDBHandler:
         Returns the number of remarks archived.
         Raises ValueError if the QR is not active or has no remarks.
         """
+        print(f"\n{'='*60}")
+        print(f"[RELEASE] Starting release_session for qr_id={qr_id}, released_by={released_by}")
         async with db_manager.session_factory() as db:
             # 1. Fetch the QR tag
             qr_result = await db.execute(select(QRCode).where(QRCode.id == qr_id))
             qr_code = qr_result.scalar_one_or_none()
             if qr_code is None:
+                print(f"[RELEASE] ERROR: QR Code not found for id={qr_id}")
                 raise ValueError("QR Code not found.")
+            print(f"[RELEASE] QR found: id={qr_code.id}, status={qr_code.status}")
             if str(qr_code.status) != "active":
+                print(f"[RELEASE] ERROR: QR is not active (status={qr_code.status})")
                 raise ValueError("QR tag is not active — nothing to release.")
 
             # 2. Fetch all remarks for this QR
@@ -264,16 +269,29 @@ class SessionDBHandler:
                     .order_by(Remarks.created_at.asc())
                 )
             ).all()
+            print(f"[RELEASE] Found {len(remarks)} remarks for qr_id={qr_id}")
 
             if not remarks:
+                print(f"[RELEASE] ERROR: No remarks to archive!")
                 raise ValueError("No remarks found for this QR session — nothing to archive.")
 
-            # 3. Copy each remark into produced_items
-            for remark in remarks:
+            # 3. Resolve department names for all remarks
+            dept_ids = list({r.department_id for r in remarks if r.department_id})
+            dept_name_map: dict = {}
+            if dept_ids:
+                dept_rows = await db.execute(
+                    select(Department.id, Department.name).where(Department.id.in_(dept_ids))
+                )
+                dept_name_map = {row.id: row.name for row in dept_rows.all()}
+
+            # 4. Copy each remark into produced_items
+            for i, remark in enumerate(remarks):
+                dept_name = dept_name_map.get(remark.department_id, "Unknown")
+                print(f"[RELEASE]   Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
                 produced_item = ProducedItems(
                     qr_id=qr_id,
                     item_id=remark.item_id,
-                    department_id=remark.department_id,
+                    department_name=dept_name,
                     general_remarks=remark.general_remarks,
                     issue_remarks=remark.issue_remarks,
                     created_by=remark.remark_by,
@@ -286,6 +304,7 @@ class SessionDBHandler:
 
             # 4. Delete all remarks for this QR
             await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
+            print(f"[RELEASE] Deleted remarks from remarks table")
 
             # 5. Reset QR tag to inactive
             qr_code.status = "inactive"
@@ -296,4 +315,6 @@ class SessionDBHandler:
             qr_code.notes = None
 
             await db.commit()
+            print(f"[RELEASE] SUCCESS: Committed {len(remarks)} items to produced_items")
+            print(f"{'='*60}\n")
             return len(remarks)
