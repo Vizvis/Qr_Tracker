@@ -64,10 +64,17 @@ class SessionService:
                 detail="Department is inactive.",
             )
 
+        existing_item_id = await SessionDBHandler.get_existing_item_id_for_qr(payload.qr_id)
+        if existing_item_id is not None and existing_item_id != payload.item_id:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Item different different from previous department remark",
+            )
+
         if await SessionDBHandler.has_department_update(payload.qr_id, payload.department_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Duplicate update: this department has already updated this active QR session.",
+                detail="Remark by this dept alr provided",
             )
 
         if await SessionDBHandler.has_item_department_update(payload.qr_id, payload.item_id, payload.department_id):

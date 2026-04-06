@@ -6,6 +6,7 @@ from auth.dependencies import require_supervisor, require_admin
 from core.services.produced_items_service import ProducedItemsService
 from models.api_models.produced_items_models import (
     ProducedItemResponse, 
+    ProducedItemsGroupedResponse,
     ProducedItemsPaginatedResponse, 
     ProductionHistoryPaginatedResponse
 )
@@ -51,16 +52,14 @@ async def get_produced_items_by_qr_id(
     return await ProducedItemsService.get_by_qr_id_paginated(qr_id, page, page_size)
 
 
-@produced_items_router.get("/item/{item_id}", response_model=ProducedItemsPaginatedResponse)
+@produced_items_router.get("/item/{item_id}", response_model=ProducedItemsGroupedResponse)
 async def get_produced_items_by_item_id(
     item_id: str,
     current_user_id: UUID = Depends(require_supervisor),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(DEFAULT_PAGE_SIZE, ge=1, le=MAX_PAGE_SIZE),
 ):
     """View produced items for an item_id."""
     _ = current_user_id
-    return await ProducedItemsService.get_by_item_id_paginated(item_id, page, page_size)
+    return await ProducedItemsService.get_by_item_id_grouped(item_id)
 
 
 @produced_items_router.get("", response_model=ProductionHistoryPaginatedResponse)

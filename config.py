@@ -17,7 +17,7 @@ DB_NAME_CLOUD = "postgres"
 
 # Local Database (PostgreSQL)
 DB_USER_LOCAL = "postgres"
-DB_PASSWORD_LOCAL = "sivu%402004"
+DB_PASSWORD_LOCAL = "postgres"
 DB_HOST_LOCAL = "localhost"
 DB_PORT_LOCAL = 5432
 DB_NAME_LOCAL = "QR_tracker"

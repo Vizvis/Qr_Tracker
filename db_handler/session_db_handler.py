@@ -149,6 +149,16 @@ class SessionDBHandler:
             return result.scalar_one_or_none() is not None
 
     @staticmethod
+    async def get_existing_item_id_for_qr(qr_id: str) -> str | None:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(
+                select(Remarks.item_id)
+                .where(cast(Remarks.qr_id, SQLString) == qr_id)
+                .limit(1)
+            )
+            return result.scalar_one_or_none()
+
+    @staticmethod
     async def list_remarks_by_qr_id(qr_id: str) -> list[tuple[Remarks, str | None]]:
         async with db_manager.session_factory() as db:
             result = await db.execute(

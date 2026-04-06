@@ -12,6 +12,13 @@ class ProducedItemsService:
         return await ProducedItemsDBHandler.get_by_qr_id(qr_id)
 
     @staticmethod
+    async def get_by_qr_id_grouped(qr_id: str) -> dict:
+        items = await ProducedItemsDBHandler.get_by_qr_id(qr_id)
+        return {
+            "items": ProducedItemsService._group_by_item_id(items),
+        }
+
+    @staticmethod
     async def get_by_qr_id_paginated(qr_id: str, page: int, page_size: int) -> dict:
         normalized_page_size = normalize_page_size(page_size)
         items, total = await ProducedItemsDBHandler.get_by_qr_id_paginated(qr_id, page, normalized_page_size)
@@ -23,6 +30,13 @@ class ProducedItemsService:
     @staticmethod
     async def get_by_item_id(item_id: str) -> list[ProducedItems]:
         return await ProducedItemsDBHandler.get_by_item_id(item_id)
+
+    @staticmethod
+    async def get_by_item_id_grouped(item_id: str) -> dict:
+        items = await ProducedItemsDBHandler.get_by_item_id(item_id)
+        return {
+            "items": ProducedItemsService._group_by_item_id(items),
+        }
 
     @staticmethod
     async def get_by_item_id_paginated(item_id: str, page: int, page_size: int) -> dict:

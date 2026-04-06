@@ -84,6 +84,12 @@ class QRService:
                 detail="QR Code not found.",
             )
 
+        if new_status == "inactive" and await QRDBHandler.has_live_session(qr_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cannot set QR to inactive while a session is live. Finish the session first.",
+            )
+
         updated_qr = await QRDBHandler.update_status(
             qr_id=qr_id,
             new_status=new_status,
@@ -117,6 +123,12 @@ class QRService:
 
     @staticmethod
     async def delete_qr(qr_id: str) -> None:
+        if await QRDBHandler.has_live_session(qr_id):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Cannot delete QR while a session is live. Finish or release the session first.",
+            )
+
         deleted = await QRDBHandler.delete_qr(qr_id)
         if not deleted:
             raise HTTPException(

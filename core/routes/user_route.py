@@ -110,7 +110,7 @@ async def admin_reset_password(
 @user_router.post("", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
     payload: UserCreateRequest,
-    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    # _: Annotated[dict, Depends(require_valid_auth_cookie)],
 ):
     """Create user endpoint."""
     user = await UserService.create_user(payload)

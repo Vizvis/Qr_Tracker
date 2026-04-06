@@ -31,8 +31,21 @@ class DepartmentService:
 
     @staticmethod
     async def create_department(payload: DepartmentCreateRequest) -> Department:
+        department_name = payload.name.value
+        if await DepartmentDBHandler.name_exists(department_name):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail=f"Department '{department_name}' already exists.",
+            )
+
+        if await DepartmentDBHandler.sequence_order_exists(payload.sequence_order):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Sequence order already occupied.",
+            )
+
         department = Department(
-            name=payload.name,
+            name=department_name,
             sequence_order=payload.sequence_order,
             status=payload.status,
             head_of_department=payload.head_of_department,
@@ -52,6 +65,14 @@ class DepartmentService:
         if payload.name is not None:
             update_data["name"] = payload.name
         if payload.sequence_order is not None:
+            if await DepartmentDBHandler.sequence_order_exists(
+                payload.sequence_order,
+                exclude_department_id=department_id,
+            ):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="Sequence order already occupied.",
+                )
             update_data["sequence_order"] = payload.sequence_order
         if payload.status is not None:
             update_data["status"] = payload.status

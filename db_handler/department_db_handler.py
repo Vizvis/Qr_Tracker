@@ -39,6 +39,24 @@ class DepartmentDBHandler:
             return result.scalar_one_or_none()
 
     @staticmethod
+    async def name_exists(name: str, exclude_department_id: UUID | None = None) -> bool:
+        async with db_manager.session_factory() as db:
+            stmt = select(Department.id).where(Department.name == name)
+            if exclude_department_id is not None:
+                stmt = stmt.where(Department.id != exclude_department_id)
+            result = await db.execute(stmt.limit(1))
+            return result.scalar_one_or_none() is not None
+
+    @staticmethod
+    async def sequence_order_exists(sequence_order: int, exclude_department_id: UUID | None = None) -> bool:
+        async with db_manager.session_factory() as db:
+            stmt = select(Department.id).where(Department.sequence_order == sequence_order)
+            if exclude_department_id is not None:
+                stmt = stmt.where(Department.id != exclude_department_id)
+            result = await db.execute(stmt.limit(1))
+            return result.scalar_one_or_none() is not None
+
+    @staticmethod
     async def create(department: Department) -> Department:
         async with db_manager.session_factory() as db:
             db.add(department)

@@ -31,6 +31,12 @@ class ProducedItemsPaginatedResponse(BaseModel):
     total_pages: int
 
 
+class ProducedItemsGroupedResponse(BaseModel):
+    """Non-paginated grouped produced-items response."""
+
+    items: dict[str, list[ProducedItemResponse]]
+
+
 class ProductionHistoryItem(BaseModel):
     """Single production history record (aggregated by item_id)."""
     id: str

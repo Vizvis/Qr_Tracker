@@ -71,6 +71,16 @@ class QRDBHandler:
             return qr_code
 
     @staticmethod
+    async def has_live_session(qr_id: str) -> bool:
+        async with db_manager.session_factory() as db:
+            result = await db.execute(
+                select(Remarks.id)
+                .where(Remarks.qr_id == qr_id)
+                .limit(1)
+            )
+            return result.scalar_one_or_none() is not None
+
+    @staticmethod
     async def finish_session(qr_id: str) -> int:
         """Move all remarks for a QR into produced_items and clear source remarks."""
         async with db_manager.session_factory() as db:
