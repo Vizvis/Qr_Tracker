@@ -1,6 +1,6 @@
 """Remarks model."""
 from datetime import datetime
-from sqlalchemy import Column, String, ForeignKey, DateTime, UniqueConstraint
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from uuid import uuid4
@@ -22,7 +22,11 @@ class Remarks(Base):
     qr_id = Column(String, ForeignKey("qr_codes.id"), nullable=True)
     item_id = Column(String, nullable=False)
     department_id = Column(UUID(as_uuid=True), ForeignKey("department.id"), nullable=True)
-    general_remarks = Column(String, nullable=True)
+    field_1 = Column(Integer, nullable=True, default=0)
+    field_2 = Column(Integer, nullable=True, default=0)
+    field_3 = Column(Integer, nullable=True, default=0)
+    field_4 = Column(Integer, nullable=True, default=0)
+    field_5 = Column(Integer, nullable=True, default=0)
     issue_remarks = Column(String, nullable=True)
     custom_data = Column(JSONB, default=dict, server_default='{}', nullable=False)
     remarks_history = Column(JSONB, default=list, server_default='[]', nullable=False)

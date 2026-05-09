@@ -13,6 +13,9 @@ from models.api_models.remarks_models import RemarkCreateRequest, RemarkUpdateRe
 from models.db_models.enums import DepartmentStatus
 from models.db_models.remarks import Remarks
 
+# Field names for iteration
+FIELD_NAMES = [f"field_{i}" for i in range(1, 6)]
+
 
 class SessionService:
     """Business logic for session endpoints."""
@@ -25,7 +28,11 @@ class SessionService:
             "item_id": remark.item_id,
             "department_id": str(remark.department_id) if remark.department_id is not None else None,
             "department": department_name,
-            "general_remarks": remark.general_remarks,
+            "field_1": remark.field_1 if remark.field_1 is not None else 0,
+            "field_2": remark.field_2 if remark.field_2 is not None else 0,
+            "field_3": remark.field_3 if remark.field_3 is not None else 0,
+            "field_4": remark.field_4 if remark.field_4 is not None else 0,
+            "field_5": remark.field_5 if remark.field_5 is not None else 0,
             "issue_remarks": remark.issue_remarks,
             "custom_data": remark.custom_data if remark.custom_data is not None else {},
             "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
@@ -34,6 +41,25 @@ class SessionService:
             "created_at": remark.created_at.replace(tzinfo=timezone.utc) if remark.created_at is not None else None,
             "updated_at": remark.updated_at.replace(tzinfo=timezone.utc) if getattr(remark, 'updated_at', None) is not None else None,
         }
+
+
+
+    @staticmethod
+    async def _validate_vertical_cascade(qr_id: str, item_id: str, department_id: UUID, field_values: dict):
+        """Validate across-department cascade: each field <= same field in previous department."""
+        prev_remark = await SessionDBHandler.get_previous_department_remark(qr_id, item_id, department_id)
+        if prev_remark is None:
+            return  # First department, no constraint
+
+        for i in range(1, 6):
+            field_name = f"field_{i}"
+            current_val = field_values.get(field_name)
+            prev_val = getattr(prev_remark, field_name, None)
+            if current_val is not None and prev_val is not None and current_val > prev_val:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Field {i} value ({current_val}) exceeds previous department's value ({prev_val}).",
+                )
 
     @staticmethod
     async def create_remark(current_user_id: UUID, payload: RemarkCreateRequest) -> dict:
@@ -76,12 +102,26 @@ class SessionService:
                 detail="Duplicate update: item_id + department_id already exists for this active QR session.",
             )
 
+        # Build field values dict for validation
+        field_values = {
+            f"field_{i}": getattr(payload, f"field_{i}") for i in range(1, 6)
+        }
+
+        # Vertical cascade validation (same field across departments)
+        await SessionService._validate_vertical_cascade(
+            payload.qr_id, payload.item_id, payload.department_id, field_values
+        )
+
         try:
             remark, department_name = await SessionDBHandler.create_remark(
                 qr_id=payload.qr_id,
                 item_id=payload.item_id,
                 department_id=payload.department_id,
-                general_remarks=payload.general_remarks,
+                field_1=payload.field_1,
+                field_2=payload.field_2,
+                field_3=payload.field_3,
+                field_4=payload.field_4,
+                field_5=payload.field_5,
                 issue_remarks=payload.issue_remarks,
                 custom_data=payload.custom_data,
                 current_user_id=current_user_id,
@@ -101,7 +141,11 @@ class SessionService:
                 qr_id=qr_id,
                 item_id=payload.item_id,
                 department_id=payload.department_id,
-                general_remarks=payload.general_remarks,
+                field_1=payload.field_1,
+                field_2=payload.field_2,
+                field_3=payload.field_3,
+                field_4=payload.field_4,
+                field_5=payload.field_5,
                 issue_remarks=payload.issue_remarks,
                 custom_data=payload.custom_data,
             ),
@@ -109,7 +153,8 @@ class SessionService:
 
     @staticmethod
     async def update_session_remark(
-        qr_id: str, remark_id: UUID, current_user_id: UUID, payload: SessionRemarkUpdateRequest
+        qr_id: str, remark_id: UUID, current_user_id: UUID, payload: SessionRemarkUpdateRequest,
+        user_role: str = "operator"
     ) -> dict:
         """Update a remark via the session endpoint (PUT /session/{qr_id}/remarks/{remark_id})."""
         remark = await SessionDBHandler.get_by_id(remark_id)
@@ -126,10 +171,35 @@ class SessionService:
                 detail="Remark not found for this QR session.",
             )
 
-        update_data = {
-            "general_remarks": payload.general_remarks,
-            "issue_remarks": payload.issue_remarks,
-        }
+        # Edit-lock: operators cannot edit once the next department has scanned
+        if user_role != "admin":
+            is_locked = await SessionDBHandler.has_subsequent_department_remark(
+                qr_id, remark.item_id, remark.department_id
+            )
+            if is_locked:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Editing locked: a subsequent department has already logged data for this item.",
+                )
+
+        update_data = {}
+        for i in range(1, 6):
+            field_name = f"field_{i}"
+            val = getattr(payload, field_name, None)
+            if val is not None:
+                update_data[field_name] = val
+        update_data["issue_remarks"] = payload.issue_remarks
+
+        # Merge existing values with updates for cascade validation
+        field_values = {}
+        for i in range(1, 6):
+            field_name = f"field_{i}"
+            field_values[field_name] = update_data.get(field_name, getattr(remark, field_name, 0))
+
+        # Vertical cascade validation (same field across departments)
+        await SessionService._validate_vertical_cascade(
+            qr_id, remark.item_id, remark.department_id, field_values
+        )
 
         try:
             updated_row, department_name = await SessionDBHandler.update_remark(
@@ -181,8 +251,10 @@ class SessionService:
                     )
             update_data["department_id"] = payload.department_id
 
-        if "general_remarks" in set_fields:
-            update_data["general_remarks"] = payload.general_remarks
+        for i in range(1, 6):
+            field_name = f"field_{i}"
+            if field_name in set_fields:
+                update_data[field_name] = getattr(payload, field_name)
 
         if "issue_remarks" in set_fields:
             update_data["issue_remarks"] = payload.issue_remarks

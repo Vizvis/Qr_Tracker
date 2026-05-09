@@ -10,7 +10,11 @@ class SessionRemarkCreateRequest(BaseModel):
 
     item_id: str = Field(..., min_length=1, max_length=120)
     department_id: UUID
-    general_remarks: str | None = Field(default=None, max_length=1000)
+    field_1: int | None = Field(default=None, ge=0)
+    field_2: int | None = Field(default=None, ge=0)
+    field_3: int | None = Field(default=None, ge=0)
+    field_4: int | None = Field(default=None, ge=0)
+    field_5: int | None = Field(default=None, ge=0)
     issue_remarks: str | None = Field(default=None, max_length=1000)
     custom_data: dict | None = Field(default_factory=dict)
 
@@ -22,7 +26,7 @@ class SessionRemarkCreateRequest(BaseModel):
             raise ValueError("item_id cannot be empty.")
         return trimmed
 
-    @field_validator("general_remarks", "issue_remarks")
+    @field_validator("issue_remarks")
     @classmethod
     def normalize_optional_remarks(cls, value: str | None) -> str | None:
         if value is None:
@@ -30,19 +34,25 @@ class SessionRemarkCreateRequest(BaseModel):
         return value.strip()
 
     @model_validator(mode="after")
-    def ensure_any_remark_present(self):
-        has_general = self.general_remarks is not None
+    def ensure_any_data_present(self):
+        has_fields = any(
+            getattr(self, f"field_{i}") is not None for i in range(1, 6)
+        )
         has_issue = self.issue_remarks is not None
         has_custom = bool(self.custom_data)
-        if not has_general and not has_issue and not has_custom:
-            raise ValueError("At least one of general_remarks, issue_remarks, or custom_data is required.")
+        if not has_fields and not has_issue and not has_custom:
+            raise ValueError("At least one of field_1..5, issue_remarks, or custom_data is required.")
         return self
 
 
 class SessionRemarkUpdateRequest(BaseModel):
     """Payload for updating a remark in an active QR session."""
 
-    general_remarks: str = Field(default="", max_length=1000)
+    field_1: int | None = Field(default=None, ge=0)
+    field_2: int | None = Field(default=None, ge=0)
+    field_3: int | None = Field(default=None, ge=0)
+    field_4: int | None = Field(default=None, ge=0)
+    field_5: int | None = Field(default=None, ge=0)
     issue_remarks: str = Field(default="", max_length=1000)  # empty string clears the error flag
 
 
@@ -55,7 +65,11 @@ class SessionRemarkResponse(BaseModel):
     item_id: str
     department_id: str | None
     department: str | None
-    general_remarks: str | None
+    field_1: int | None = 0
+    field_2: int | None = 0
+    field_3: int | None = 0
+    field_4: int | None = 0
+    field_5: int | None = 0
     issue_remarks: str | None
     custom_data: dict | None = Field(default_factory=dict)
     remarks_history: list[dict] | None = Field(default_factory=list)

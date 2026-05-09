@@ -47,7 +47,8 @@ async def update_session_remark_put(
 ):
     """Update an existing remark for an active QR session (PUT)."""
     current_user_id = UUID(current_user["user_id"])
-    return await SessionService.update_session_remark(qr_id, remark_id, current_user_id, payload)
+    user_role = current_user.get("role", "operator")
+    return await SessionService.update_session_remark(qr_id, remark_id, current_user_id, payload, user_role=user_role)
 
 
 @session_router.patch("/{qr_id}/remarks/{remark_id}", response_model=SessionRemarkResponse)
@@ -59,7 +60,8 @@ async def update_session_remark_patch(
 ):
     """Update an existing remark for an active QR session (PATCH)."""
     current_user_id = UUID(current_user["user_id"])
-    return await SessionService.update_session_remark(qr_id, remark_id, current_user_id, payload)
+    user_role = current_user.get("role", "operator")
+    return await SessionService.update_session_remark(qr_id, remark_id, current_user_id, payload, user_role=user_role)
 
 
 @session_router.patch("/{qr_id}/close")

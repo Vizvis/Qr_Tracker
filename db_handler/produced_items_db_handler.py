@@ -81,7 +81,6 @@ class ProducedItemsDBHandler:
                         ProducedItems.qr_id.ilike(search_term),
                         ProducedItems.item_id.ilike(search_term),
                         ProducedItems.department_name.ilike(search_term),
-                        ProducedItems.general_remarks.ilike(search_term),
                         ProducedItems.issue_remarks.ilike(search_term)
                     )
                 )

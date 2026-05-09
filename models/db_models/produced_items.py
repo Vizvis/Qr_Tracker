@@ -1,5 +1,5 @@
 """Produced Items model."""
-from sqlalchemy import Column, String, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from datetime import datetime
@@ -15,7 +15,11 @@ class ProducedItems(Base):
     qr_id = Column(String, ForeignKey("qr_codes.id"), nullable=False)
     item_id = Column(String, nullable=False)
     department_name = Column(String, nullable=False)
-    general_remarks = Column(String, nullable=True)
+    field_1 = Column(Integer, nullable=True, default=0)
+    field_2 = Column(Integer, nullable=True, default=0)
+    field_3 = Column(Integer, nullable=True, default=0)
+    field_4 = Column(Integer, nullable=True, default=0)
+    field_5 = Column(Integer, nullable=True, default=0)
     issue_remarks = Column(String, nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)

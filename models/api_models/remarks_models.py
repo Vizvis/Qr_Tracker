@@ -10,7 +10,11 @@ class RemarkCreateRequest(BaseModel):
     qr_id: str = Field(..., min_length=1, max_length=120)
     item_id: str = Field(..., min_length=1, max_length=120)
     department_id: UUID
-    general_remarks: str | None = Field(default=None, max_length=1000)
+    field_1: int | None = Field(default=None, ge=0)
+    field_2: int | None = Field(default=None, ge=0)
+    field_3: int | None = Field(default=None, ge=0)
+    field_4: int | None = Field(default=None, ge=0)
+    field_5: int | None = Field(default=None, ge=0)
     issue_remarks: str | None = Field(default=None, max_length=1000)
     custom_data: dict | None = Field(default_factory=dict)
 
@@ -22,7 +26,7 @@ class RemarkCreateRequest(BaseModel):
             raise ValueError("Value cannot be empty.")
         return trimmed
 
-    @field_validator("general_remarks", "issue_remarks")
+    @field_validator("issue_remarks")
     @classmethod
     def trim_optional_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -30,12 +34,14 @@ class RemarkCreateRequest(BaseModel):
         return value.strip()
 
     @model_validator(mode="after")
-    def require_some_remark(self):
-        has_general = self.general_remarks is not None
+    def require_some_data(self):
+        has_fields = any(
+            getattr(self, f"field_{i}") is not None for i in range(1, 6)
+        )
         has_issue = self.issue_remarks is not None
         has_custom = bool(self.custom_data)
-        if not has_general and not has_issue and not has_custom:
-            raise ValueError("At least one remark field or custom_data is required.")
+        if not has_fields and not has_issue and not has_custom:
+            raise ValueError("At least one field value, issue_remarks, or custom_data is required.")
         return self
 
 
@@ -44,7 +50,11 @@ class RemarkUpdateRequest(BaseModel):
 
     item_id: str | None = Field(default=None, min_length=1, max_length=120)
     department_id: UUID | None = None
-    general_remarks: str | None = Field(default=None, max_length=1000)
+    field_1: int | None = Field(default=None, ge=0)
+    field_2: int | None = Field(default=None, ge=0)
+    field_3: int | None = Field(default=None, ge=0)
+    field_4: int | None = Field(default=None, ge=0)
+    field_5: int | None = Field(default=None, ge=0)
     issue_remarks: str | None = Field(default=None, max_length=1000)
     custom_data: dict | None = None
 
@@ -56,7 +66,7 @@ class RemarkUpdateRequest(BaseModel):
         trimmed = value.strip()
         return trimmed
 
-    @field_validator("general_remarks", "issue_remarks")
+    @field_validator("issue_remarks")
     @classmethod
     def trim_optional_text(cls, value: str | None) -> str | None:
         if value is None:
@@ -68,7 +78,7 @@ class RemarkUpdateRequest(BaseModel):
         if (
             self.item_id is None
             and self.department_id is None
-            and self.general_remarks is None
+            and all(getattr(self, f"field_{i}") is None for i in range(1, 6))
             and self.issue_remarks is None
             and self.custom_data is None
         ):
@@ -86,7 +96,11 @@ class RemarkResponse(BaseModel):
     item_id: str
     department_id: str | None
     department: str | None
-    general_remarks: str | None
+    field_1: int | None = 0
+    field_2: int | None = 0
+    field_3: int | None = 0
+    field_4: int | None = 0
+    field_5: int | None = 0
     issue_remarks: str | None
     custom_data: dict | None = Field(default_factory=dict)
     remarks_history: list[dict] | None = Field(default_factory=list)

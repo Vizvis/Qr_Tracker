@@ -20,7 +20,11 @@ class SessionDBHandler:
         qr_id: str,
         item_id: str,
         department_id: UUID,
-        general_remarks: str | None,
+        field_1: int | None,
+        field_2: int | None,
+        field_3: int | None,
+        field_4: int | None,
+        field_5: int | None,
         issue_remarks: str | None,
         custom_data: dict | None = None,
         current_user_id: UUID | None = None,
@@ -30,7 +34,11 @@ class SessionDBHandler:
                 qr_id=qr_id,
                 item_id=item_id,
                 department_id=department_id,
-                general_remarks=general_remarks,
+                field_1=field_1 if field_1 is not None else 0,
+                field_2=field_2 if field_2 is not None else 0,
+                field_3=field_3 if field_3 is not None else 0,
+                field_4=field_4 if field_4 is not None else 0,
+                field_5=field_5 if field_5 is not None else 0,
                 issue_remarks=issue_remarks,
                 custom_data=custom_data if custom_data is not None else {},
                 remark_by=current_user_id,
@@ -91,7 +99,11 @@ class SessionDBHandler:
             # Append current state to history
             history_entry = {
                 "date": remark.updated_at.isoformat() if getattr(remark, 'updated_at', None) else remark.created_at.isoformat(),
-                "general_remarks": remark.general_remarks,
+                "field_1": remark.field_1,
+                "field_2": remark.field_2,
+                "field_3": remark.field_3,
+                "field_4": remark.field_4,
+                "field_5": remark.field_5,
                 "issue_remarks": remark.issue_remarks
             }
             
@@ -181,6 +193,56 @@ class SessionDBHandler:
             return (remark, dept_name if dept_name is not None else None)
 
     @staticmethod
+    async def get_previous_department_remark(qr_id: str, item_id: str, department_id: UUID) -> Remarks | None:
+        """Get the remark from the previous department (lower sequence_order) for cascade validation."""
+        async with db_manager.session_factory() as db:
+            # Get the sequence_order of the current department
+            current_dept = await db.execute(
+                select(Department.sequence_order)
+                .where(Department.id == department_id)
+                .limit(1)
+            )
+            current_seq = current_dept.scalar_one_or_none()
+            if current_seq is None:
+                return None
+
+            # Find the remark from the department with the next-lower sequence_order
+            result = await db.execute(
+                select(Remarks)
+                .join(Department, Remarks.department_id == Department.id)
+                .where(cast(Remarks.qr_id, SQLString) == qr_id)
+                .where(Remarks.item_id == item_id)
+                .where(Department.sequence_order < current_seq)
+                .order_by(desc(Department.sequence_order))
+                .limit(1)
+            )
+            return result.scalar_one_or_none()
+
+    @staticmethod
+    async def has_subsequent_department_remark(qr_id: str, item_id: str, department_id: UUID) -> bool:
+        """Check if any department with a higher sequence_order has already logged data."""
+        async with db_manager.session_factory() as db:
+            # Get current department's sequence_order
+            current_dept = await db.execute(
+                select(Department.sequence_order)
+                .where(Department.id == department_id)
+                .limit(1)
+            )
+            current_seq = current_dept.scalar_one_or_none()
+            if current_seq is None:
+                return False
+
+            result = await db.execute(
+                select(Remarks.id)
+                .join(Department, Remarks.department_id == Department.id)
+                .where(cast(Remarks.qr_id, SQLString) == qr_id)
+                .where(Remarks.item_id == item_id)
+                .where(Department.sequence_order > current_seq)
+                .limit(1)
+            )
+            return result.scalar_one_or_none() is not None
+
+    @staticmethod
     async def list_active_qr_remarks(page: int, page_size: int) -> tuple[list[dict], int]:
         offset = (page - 1) * page_size
         async with db_manager.session_factory() as db:
@@ -219,7 +281,11 @@ class SessionDBHandler:
                         "item_id": remark.item_id,
                         "department_id": str(remark.department_id) if remark.department_id else None,
                         "department": dept_name if dept_name is not None else None,
-                        "general_remarks": remark.general_remarks,
+                        "field_1": remark.field_1 if remark.field_1 is not None else 0,
+                        "field_2": remark.field_2 if remark.field_2 is not None else 0,
+                        "field_3": remark.field_3 if remark.field_3 is not None else 0,
+                        "field_4": remark.field_4 if remark.field_4 is not None else 0,
+                        "field_5": remark.field_5 if remark.field_5 is not None else 0,
                         "issue_remarks": remark.issue_remarks,
                         "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
                         "remark_by": str(remark.remark_by) if remark.remark_by else None,
@@ -250,8 +316,8 @@ class SessionDBHandler:
         print(f"\n{'='*60}")
         print(f"[RELEASE] Starting release_session for qr_id={qr_id}, released_by={released_by}")
         async with db_manager.session_factory() as db:
-            # 1. Fetch the QR tag
-            qr_result = await db.execute(select(QRCode).where(QRCode.id == qr_id))
+            # 1. Fetch the QR tag with row-level lock to prevent concurrent releases
+            qr_result = await db.execute(select(QRCode).where(QRCode.id == qr_id).with_for_update())
             qr_code = qr_result.scalar_one_or_none()
             if qr_code is None:
                 print(f"[RELEASE] ERROR: QR Code not found for id={qr_id}")
@@ -292,7 +358,11 @@ class SessionDBHandler:
                     qr_id=qr_id,
                     item_id=remark.item_id,
                     department_name=dept_name,
-                    general_remarks=remark.general_remarks,
+                    field_1=remark.field_1,
+                    field_2=remark.field_2,
+                    field_3=remark.field_3,
+                    field_4=remark.field_4,
+                    field_5=remark.field_5,
                     issue_remarks=remark.issue_remarks,
                     created_by=remark.remark_by,
                     updated_by=remark.remark_updated,

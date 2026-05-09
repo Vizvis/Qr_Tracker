@@ -12,7 +12,11 @@ class ProducedItemResponse(BaseModel):
     qr_id: str
     item_id: str
     department_name: str
-    general_remarks: str | None
+    field_1: int | None = 0
+    field_2: int | None = 0
+    field_3: int | None = 0
+    field_4: int | None = 0
+    field_5: int | None = 0
     issue_remarks: str | None
     created_by: str | None
     updated_by: str | None

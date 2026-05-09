@@ -1,32 +1,46 @@
 """
 Database configuration for local and cloud environments.
-Default is cloud (USE_LOCAL_DB=False), set to True for local development.
+All sensitive values are loaded from environment variables / .env file.
 """
 import os
-import secrets
+from dotenv import load_dotenv
+
+# Load .env file (does nothing if file doesn't exist)
+load_dotenv()
 
 # Environment control
-USE_LOCAL_DB = True
+USE_LOCAL_DB = os.getenv("USE_LOCAL_DB", "true").lower() == "true"
 
 # Cloud Database (Supabase)
-DB_USER_CLOUD = "postgres"
-DB_PASSWORD_CLOUD = ""
-DB_HOST_CLOUD = ""
-DB_PORT_CLOUD = 5432
-DB_NAME_CLOUD = "postgres"
+DB_USER_CLOUD = os.getenv("DB_USER_CLOUD", "postgres")
+DB_PASSWORD_CLOUD = os.getenv("DB_PASSWORD_CLOUD", "")
+DB_HOST_CLOUD = os.getenv("DB_HOST_CLOUD", "")
+DB_PORT_CLOUD = int(os.getenv("DB_PORT_CLOUD", "5432"))
+DB_NAME_CLOUD = os.getenv("DB_NAME_CLOUD", "postgres")
 
 # Local Database (PostgreSQL)
-DB_USER_LOCAL = "postgres"
-DB_PASSWORD_LOCAL = "sivu%402004"
-DB_HOST_LOCAL = "localhost"
-DB_PORT_LOCAL = 5432
-DB_NAME_LOCAL = "QR_tracker"
+DB_USER_LOCAL = os.getenv("DB_USER", "postgres")
+DB_PASSWORD_LOCAL = os.getenv("DB_PASSWORD", "")
+DB_HOST_LOCAL = os.getenv("DB_HOST", "localhost")
+DB_PORT_LOCAL = int(os.getenv("DB_PORT", "5432"))
+DB_NAME_LOCAL = os.getenv("DB_NAME", "QR_tracker")
 
 # JWT Settings
-# Prefer environment-provided key; fallback to a random dev key when missing.
-SECRET_KEY = os.getenv("SECRET_KEY") or secrets.token_urlsafe(32)
-ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+if not SECRET_KEY:
+    raise RuntimeError(
+        "SECRET_KEY environment variable is not set! "
+        "Set it in your .env file or as a system environment variable."
+    )
+ALGORITHM = os.getenv("ALGORITHM", "HS256")
+ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
+
+# CORS Origins (comma-separated list)
+CORS_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
 
 
 class DatabaseConfig:
