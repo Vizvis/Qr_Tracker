@@ -221,6 +221,29 @@ class SessionDBHandler:
             return result.scalar_one_or_none()
 
     @staticmethod
+    async def get_all_previous_department_remarks(qr_id: str, item_id: str, department_id: UUID) -> list[Remarks]:
+        """Get all remarks from previous departments (lower sequence_order), ordered by descending sequence."""
+        async with db_manager.session_factory() as db:
+            current_dept = await db.execute(
+                select(Department.sequence_order)
+                .where(Department.id == department_id)
+                .limit(1)
+            )
+            current_seq = current_dept.scalar_one_or_none()
+            if current_seq is None:
+                return []
+
+            result = await db.execute(
+                select(Remarks)
+                .join(Department, Remarks.department_id == Department.id)
+                .where(cast(Remarks.qr_id, SQLString) == qr_id)
+                .where(Remarks.item_id == item_id)
+                .where(Department.sequence_order < current_seq)
+                .order_by(desc(Department.sequence_order))
+            )
+            return list(result.scalars().all())
+
+    @staticmethod
     async def has_subsequent_department_remark(qr_id: str, item_id: str, department_id: UUID) -> bool:
         """Check if any department with a higher sequence_order has already logged data."""
         async with db_manager.session_factory() as db:

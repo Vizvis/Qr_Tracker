@@ -46,16 +46,24 @@ class SessionService:
 
     @staticmethod
     async def _validate_vertical_cascade(qr_id: str, item_id: str, department_id: UUID, field_values: dict):
-        """Validate across-department cascade: each field <= same field in previous department."""
-        prev_remark = await SessionDBHandler.get_previous_department_remark(qr_id, item_id, department_id)
-        if prev_remark is None:
+        """Validate across-department cascade: each field <= last non-zero value in any previous department."""
+        prev_remarks = await SessionDBHandler.get_all_previous_department_remarks(qr_id, item_id, department_id)
+        if not prev_remarks:
             return  # First department, no constraint
 
         for i in range(1, 6):
             field_name = f"field_{i}"
             current_val = field_values.get(field_name)
-            prev_val = getattr(prev_remark, field_name, None)
-            if current_val is not None and prev_val is not None and current_val > prev_val:
+            if current_val is None or current_val == 0:
+                continue
+            # Walk backwards through previous remarks to find last non-zero value
+            prev_val = None
+            for remark in prev_remarks:
+                val = getattr(remark, field_name, None)
+                if val is not None and val > 0:
+                    prev_val = val
+                    break
+            if prev_val is not None and current_val > prev_val:
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail=f"Field {i} value ({current_val}) exceeds previous department's value ({prev_val}).",
