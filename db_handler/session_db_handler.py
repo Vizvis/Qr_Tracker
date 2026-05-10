@@ -18,6 +18,29 @@ class SessionDBHandler:
     """Handles remark retrieval by qr_id for session endpoints."""
 
     @staticmethod
+    async def is_item_id_used_by_other_qr(item_id: str, current_qr_id: str) -> bool:
+        async with db_manager.session_factory() as db:
+            remark = await db.scalar(
+                select(Remarks).where(
+                    Remarks.item_id == item_id,
+                    Remarks.qr_id != current_qr_id
+                ).limit(1)
+            )
+            if remark:
+                return True
+            
+            produced = await db.scalar(
+                select(ProducedItems).where(
+                    ProducedItems.item_id == item_id,
+                    ProducedItems.qr_id != current_qr_id
+                ).limit(1)
+            )
+            if produced:
+                return True
+            
+            return False
+
+    @staticmethod
     async def create_remark(
         qr_id: str,
         item_id: str,

@@ -8,7 +8,7 @@ class RemarkCreateRequest(BaseModel):
     """Request body for creating a remark."""
 
     qr_id: str = Field(..., min_length=1, max_length=120)
-    item_id: str = Field(..., min_length=1, max_length=120)
+    item_id: str = Field(..., min_length=1, max_length=8, pattern=r"^\d{1,8}$")
     department_id: UUID
     field_1: int | None = Field(default=None, ge=0)
     field_2: int | None = Field(default=None, ge=0)

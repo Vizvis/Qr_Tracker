@@ -27,7 +27,6 @@ class QRCode(Base):
     creator = relationship("User", foreign_keys=[registered_by], overlaps="created_qrs")
     enabler = relationship("User", foreign_keys=[enabled_by], overlaps="enabled_qrs")
     disabler = relationship("User", foreign_keys=[disabled_by])
-    produced_items = relationship("ProducedItems", back_populates="qr_code")
     remarks = relationship("Remarks", back_populates="qr_code")
 
     def __repr__(self):

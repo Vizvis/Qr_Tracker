@@ -130,7 +130,6 @@ class QRDBHandler:
                 return False
 
             await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
-            await db.execute(delete(ProducedItems).where(ProducedItems.qr_id == qr_id))
             await db.delete(qr)
             await db.commit()
             return True
