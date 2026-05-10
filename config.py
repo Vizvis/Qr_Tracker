@@ -35,6 +35,12 @@ if not SECRET_KEY:
 ALGORITHM = os.getenv("ALGORITHM", "HS256")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30"))
 
+# Database connection pool settings
+# pool_size: number of persistent connections kept open
+# max_overflow: extra connections allowed above pool_size under burst load
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
+DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
+
 # CORS Origins (comma-separated list)
 CORS_ORIGINS = [
     origin.strip()

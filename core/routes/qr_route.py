@@ -95,19 +95,6 @@ async def disable_qr_by_input(
     return await QRService.disable_qr_from_input(payload, current_user_id=current_user_id)
 
 
-@qr_router.post("/{id}/finish-session", response_model=QRSessionFinalizeResponse)
-async def finish_session(
-    id: Annotated[str, Path(..., min_length=8, max_length=8, pattern=r"^\d{8}$", description="The 8-digit QR ID")],
-    current_user_id: UUID = Depends(require_supervisor),
-):
-    """Move current QR remarks to produced_items and clear remarks for that QR."""
-    moved_count = await QRService.finish_session(id)
-    return QRSessionFinalizeResponse(
-        qr_id=id,
-        moved_count=moved_count,
-        message="Session finalized successfully.",
-    )
-
 
 @qr_router.delete("/{id}", status_code=status.HTTP_200_OK)
 async def delete_qr(

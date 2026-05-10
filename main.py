@@ -2,6 +2,7 @@
 Main FastAPI application entry point.
 """
 from datetime import datetime
+import logging
 import os
 import traceback
 from typing import Annotated
@@ -139,25 +140,33 @@ async def root(_: Annotated[dict, Depends(require_valid_auth_cookie)]):
 @app.on_event("startup")
 async def startup():
     """Event triggered on application startup."""
-    print("Starting QR Tracker API...")
-    print("Database connection initialized")
+    logging.basicConfig(
+        level=logging.DEBUG if os.getenv("DEBUG", "false").lower() == "true" else logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+    logger = logging.getLogger(__name__)
+    logger.info("Starting QR Tracker API...")
+    logger.info("Database connection initialized")
 
 
 # Shutdown event
 @app.on_event("shutdown")
 async def shutdown():
     """Event triggered on application shutdown."""
-    print("Shutting down QR Tracker API...")
+    logger = logging.getLogger(__name__)
+    logger.info("Shutting down QR Tracker API...")
     await db_manager.close()
-    print("Database connection closed")
+    logger.info("Database connection closed")
 
 
 if __name__ == "__main__":
     import uvicorn
+    is_dev = os.getenv("DEBUG", "false").lower() == "true"
     uvicorn.run(
         "main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,
-        log_level="info"
+        reload=is_dev,
+        log_level="debug" if is_dev else "info",
     )

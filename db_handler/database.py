@@ -4,7 +4,7 @@ Database engine and session management with Singleton pattern.
 from typing import Optional
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import sessionmaker, Session
-from config import DatabaseConfig
+from config import DatabaseConfig, DB_POOL_SIZE, DB_MAX_OVERFLOW
 
 
 class DatabaseManager:
@@ -28,6 +28,8 @@ class DatabaseManager:
                 DatabaseConfig.get_database_url(),
                 echo=False,
                 future=True,
+                pool_size=DB_POOL_SIZE,
+                max_overflow=DB_MAX_OVERFLOW,
             )
             
             self._session_factory = sessionmaker(

@@ -1,4 +1,5 @@
 """Database access layer for session-style remarks lookups."""
+import logging
 from uuid import UUID
 
 from sqlalchemy import String as SQLString, cast, delete, desc, func, select
@@ -9,8 +10,9 @@ from models.db_models.qr_code import QRCode
 from models.db_models.produced_items import ProducedItems
 from models.db_models.remarks import Remarks
 
-
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 
 class SessionDBHandler:
     """Handles remark retrieval by qr_id for session endpoints."""
@@ -313,18 +315,17 @@ class SessionDBHandler:
         Returns the number of remarks archived.
         Raises ValueError if the QR is not active or has no remarks.
         """
-        print(f"\n{'='*60}")
-        print(f"[RELEASE] Starting release_session for qr_id={qr_id}, released_by={released_by}")
+        logger.info(f"[RELEASE] Starting release_session for qr_id={qr_id}, released_by={released_by}")
         async with db_manager.session_factory() as db:
             # 1. Fetch the QR tag with row-level lock to prevent concurrent releases
             qr_result = await db.execute(select(QRCode).where(QRCode.id == qr_id).with_for_update())
             qr_code = qr_result.scalar_one_or_none()
             if qr_code is None:
-                print(f"[RELEASE] ERROR: QR Code not found for id={qr_id}")
+                logger.error(f"[RELEASE] QR Code not found: id={qr_id}")
                 raise ValueError("QR Code not found.")
-            print(f"[RELEASE] QR found: id={qr_code.id}, status={qr_code.status}")
+            logger.info(f"[RELEASE] QR found: id={qr_code.id}, status={qr_code.status}")
             if str(qr_code.status) != "active":
-                print(f"[RELEASE] ERROR: QR is not active (status={qr_code.status})")
+                logger.warning(f"[RELEASE] QR is not active (status={qr_code.status}), aborting")
                 raise ValueError("QR tag is not active — nothing to release.")
 
             # 2. Fetch all remarks for this QR
@@ -335,10 +336,10 @@ class SessionDBHandler:
                     .order_by(Remarks.created_at.asc())
                 )
             ).all()
-            print(f"[RELEASE] Found {len(remarks)} remarks for qr_id={qr_id}")
+            logger.info(f"[RELEASE] Found {len(remarks)} remarks for qr_id={qr_id}")
 
             if not remarks:
-                print(f"[RELEASE] ERROR: No remarks to archive!")
+                logger.error(f"[RELEASE] No remarks to archive for qr_id={qr_id}")
                 raise ValueError("No remarks found for this QR session — nothing to archive.")
 
             # 3. Resolve department names for all remarks
@@ -353,7 +354,7 @@ class SessionDBHandler:
             # 4. Copy each remark into produced_items
             for i, remark in enumerate(remarks):
                 dept_name = dept_name_map.get(remark.department_id, "Unknown")
-                print(f"[RELEASE]   Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
+                logger.debug(f"[RELEASE] Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
                 produced_item = ProducedItems(
                     qr_id=qr_id,
                     item_id=remark.item_id,
@@ -374,7 +375,7 @@ class SessionDBHandler:
 
             # 4. Delete all remarks for this QR
             await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
-            print(f"[RELEASE] Deleted remarks from remarks table")
+            logger.info(f"[RELEASE] Deleted remarks from remarks table for qr_id={qr_id}")
 
             # 5. Reset QR tag to inactive
             qr_code.status = "inactive"
@@ -385,6 +386,5 @@ class SessionDBHandler:
             qr_code.notes = None
 
             await db.commit()
-            print(f"[RELEASE] SUCCESS: Committed {len(remarks)} items to produced_items")
-            print(f"{'='*60}\n")
+            logger.info(f"[RELEASE] SUCCESS: Archived {len(remarks)} items to produced_items for qr_id={qr_id}")
             return len(remarks)
