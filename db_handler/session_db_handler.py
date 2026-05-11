@@ -31,8 +31,7 @@ class SessionDBHandler:
             
             produced = await db.scalar(
                 select(ProducedItems).where(
-                    ProducedItems.item_id == item_id,
-                    ProducedItems.qr_id != current_qr_id
+                    ProducedItems.item_id == item_id
                 ).limit(1)
             )
             if produced:
@@ -66,10 +65,22 @@ class SessionDBHandler:
                 field_5=field_5 if field_5 is not None else 0,
                 issue_remarks=issue_remarks,
                 custom_data=custom_data if custom_data is not None else {},
-                remark_by=current_user_id,
-                remark_updated=current_user_id,
+                scanned_by=current_user_id,
+                last_edited_by=current_user_id,
             )
             db.add(remark)
+            
+            # Update last_scanned_at on the QR code
+            if qr_id:
+                from models.db_models.qr_code import QRCode
+                from datetime import datetime
+                from sqlalchemy import update
+                await db.execute(
+                    update(QRCode)
+                    .where(QRCode.id == qr_id)
+                    .values(last_scanned_at=datetime.utcnow())
+                )
+
             try:
                 await db.commit()
             except IntegrityError:
@@ -391,30 +402,34 @@ class SessionDBHandler:
             # 3. Resolve department names for all remarks
             dept_ids = list({r.department_id for r in remarks if r.department_id})
             dept_name_map: dict = {}
+            dept_seq_map: dict = {}
             if dept_ids:
                 dept_rows = await db.execute(
-                    select(Department.id, Department.name).where(Department.id.in_(dept_ids))
+                    select(Department.id, Department.name, Department.sequence_order).where(Department.id.in_(dept_ids))
                 )
-                dept_name_map = {row.id: row.name for row in dept_rows.all()}
+                for row in dept_rows.all():
+                    dept_name_map[row.id] = row.name
+                    dept_seq_map[row.id] = row.sequence_order
 
             # 4. Copy each remark into produced_items
             for i, remark in enumerate(remarks):
                 dept_name = dept_name_map.get(remark.department_id, "Unknown")
+                dept_seq = dept_seq_map.get(remark.department_id, -1)
                 logger.debug(f"[RELEASE] Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
                 produced_item = ProducedItems(
                     qr_id=qr_id,
                     item_id=remark.item_id,
                     department_name=dept_name,
+                    department_sequence=dept_seq,
                     field_1=remark.field_1,
                     field_2=remark.field_2,
                     field_3=remark.field_3,
                     field_4=remark.field_4,
                     field_5=remark.field_5,
                     issue_remarks=remark.issue_remarks,
-                    created_by=remark.remark_by,
-                    updated_by=remark.remark_updated,
-                    remark_by=remark.remark_by,
-                    remark_updated=remark.remark_updated,
+                    scanned_by=getattr(remark, "scanned_by", None) or getattr(remark, "remark_by", None),
+                    last_edited_by=getattr(remark, "last_edited_by", None) or getattr(remark, "remark_updated", None),
+                    archived_at=datetime.utcnow(),
                     created_at=remark.created_at,
                 )
                 db.add(produced_item)

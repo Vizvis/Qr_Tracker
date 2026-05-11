@@ -18,6 +18,7 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(SQLEnum(RoleLevel), nullable=False)
     is_active = Column(Boolean, default=True)
+    deactivated_at = Column(DateTime, nullable=True, default=None)
     created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships

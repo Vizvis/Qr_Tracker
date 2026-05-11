@@ -21,6 +21,7 @@ class QRCode(Base):
     disabled_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
     disabled_at = Column(DateTime, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+    last_scanned_at = Column(DateTime, nullable=True, default=None)
     notes = Column(String, nullable=True)
 
     # Relationships

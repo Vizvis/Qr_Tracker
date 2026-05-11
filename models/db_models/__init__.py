@@ -5,6 +5,7 @@ from .qr_code import QRCode
 from .department import Department
 from .produced_items import ProducedItems
 from .remarks import Remarks
+from .remarks_audit_log import RemarksAuditLog
 
 __all__ = [
     "Base",
@@ -15,4 +16,5 @@ __all__ = [
     "Department",
     "ProducedItems",
     "Remarks",
+    "RemarksAuditLog",
 ]

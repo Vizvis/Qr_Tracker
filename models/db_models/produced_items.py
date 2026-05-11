@@ -21,14 +21,11 @@ class ProducedItems(Base):
     field_4 = Column(Integer, nullable=True, default=0)
     field_5 = Column(Integer, nullable=True, default=0)
     issue_remarks = Column(String, nullable=True)
-    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    updated_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    remark_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    remark_updated = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    scanned_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    last_edited_by = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
+    archived_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    department_sequence = Column(Integer, nullable=False, default=-1)
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
-
-    creator = relationship("User", foreign_keys=[created_by])
-    updater = relationship("User", foreign_keys=[updated_by])
 
     def __repr__(self):
         return f"<ProducedItems(produced_id={self.produced_id}, item_id={self.item_id})>"

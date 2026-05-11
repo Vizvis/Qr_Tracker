@@ -56,6 +56,7 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: int
     is_active: bool
+    deactivated_at: datetime | None = None
     created_at: datetime
 
     @field_validator("role", mode="before")

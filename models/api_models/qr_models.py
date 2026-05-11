@@ -52,6 +52,7 @@ class QRCodeResponse(BaseModel):
     disabled_by: UUID | str | None
     disabled_at: datetime | None
     created_at: datetime | None
+    last_scanned_at: datetime | None = None
     notes: str | None
 
 

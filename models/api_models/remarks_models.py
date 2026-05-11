@@ -104,9 +104,10 @@ class RemarkResponse(BaseModel):
     issue_remarks: str | None
     custom_data: dict | None = Field(default_factory=dict)
     remarks_history: list[dict] | None = Field(default_factory=list)
-    remark_by: str | None
-    remark_updated: str | None
+    scanned_by: str | None
+    last_edited_by: str | None
     created_at: datetime | None
+    scanned_at: datetime | None
     updated_at: datetime | None
 
 

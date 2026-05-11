@@ -11,7 +11,6 @@ class DepartmentCreateRequest(BaseModel):
     name: str
     sequence_order: int = 0
     status: DepartmentStatus = DepartmentStatus.ACTIVE
-    head_of_department: UUID | None = None
 
 
 class DepartmentUpdateRequest(BaseModel):
@@ -20,7 +19,6 @@ class DepartmentUpdateRequest(BaseModel):
     name: str | None = None
     sequence_order: int | None = None
     status: DepartmentStatus | None = None
-    head_of_department: UUID | None = None
 
 
 class DepartmentResponse(BaseModel):
@@ -31,8 +29,7 @@ class DepartmentResponse(BaseModel):
     name: str
     sequence_order: int
     status: DepartmentStatus
-    head_of_department: str | None
-    created_on: datetime
+    created_at: datetime
 
 
 class DepartmentListResponse(BaseModel):

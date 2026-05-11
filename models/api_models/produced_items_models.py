@@ -18,10 +18,10 @@ class ProducedItemResponse(BaseModel):
     field_4: int | None = 0
     field_5: int | None = 0
     issue_remarks: str | None
-    created_by: str | None
-    updated_by: str | None
-    remark_by: str | None
-    remark_updated: str | None
+    scanned_by: str | None
+    last_edited_by: str | None
+    department_sequence: int
+    archived_at: datetime
     created_at: datetime
 
 

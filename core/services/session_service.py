@@ -113,7 +113,7 @@ class SessionService:
         if await SessionDBHandler.is_item_id_used_by_other_qr(payload.item_id, payload.qr_id):
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail=f"Item ID {payload.item_id} is already registered under a different QR code.",
+                detail=f"Item ID {payload.item_id} is already in use (either currently active on another QR or already archived/completed).",
             )
 
         # Build field values dict for validation

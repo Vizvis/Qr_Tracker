@@ -143,6 +143,11 @@ class UserService:
             update_data["role"] = payload.role
         if payload.is_active is not None:
             update_data["is_active"] = payload.is_active
+            if not payload.is_active:
+                from datetime import datetime
+                update_data["deactivated_at"] = datetime.utcnow()
+            else:
+                update_data["deactivated_at"] = None
 
         updated_user = await UserDBHandler.update_by_phone(phone_number, update_data)
         if updated_user is None:

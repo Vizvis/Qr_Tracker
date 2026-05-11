@@ -9,7 +9,7 @@ from .enums import DepartmentStatus
 
 
 class Department(Base):
-    __tablename__ = "department"
+    __tablename__ = "departments"
 
     department_status_enum = SQLEnum(
         DepartmentStatus,
@@ -21,11 +21,9 @@ class Department(Base):
     name = Column(String(255), nullable=False, unique=True)
     sequence_order = Column(Integer, nullable=False, unique=True)
     status = Column(department_status_enum, nullable=False, default=DepartmentStatus.ACTIVE)
-    head_of_department = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=True)
-    created_on = Column(DateTime, default=datetime.utcnow)
+    created_at = Column(DateTime, default=datetime.utcnow)
 
     # Relationships
-    head = relationship("User")
     remarks = relationship("Remarks", back_populates="department")
 
     def __repr__(self):
