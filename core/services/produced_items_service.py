@@ -52,6 +52,10 @@ class ProducedItemsService:
                     "issue_remarks": item.issue_remarks,
                     "scanned_by": str(item.scanned_by) if item.scanned_by else None,
                     "last_edited_by": str(item.last_edited_by) if item.last_edited_by else None,
+                    "activated_by": str(item.activated_by) if item.activated_by else None,
+                    "activated_at": item.activated_at,
+                    "released_by": str(item.released_by) if item.released_by else None,
+                    "released_at": item.released_at,
                     "department_sequence": item.department_sequence,
                     "archived_at": item.archived_at,
                     "created_at": item.created_at,
@@ -77,7 +81,13 @@ class ProducedItemsService:
             
             # Use max and min dates from remarks
             created_at = min(r["created_at"] for r in remarks_data) if remarks_data else None
-            released_at = max(r["created_at"] for r in remarks_data) if remarks_data else None
+            released_at = max(r["released_at"] or r["created_at"] for r in remarks_data) if remarks_data else None
+            
+            # Read activation/release info from first remark (same across all rows for this item)
+            activated_by = remarks_data[0].get("activated_by") if remarks_data else None
+            activated_at = remarks_data[0].get("activated_at") if remarks_data else None
+            released_by = remarks_data[0].get("released_by") if remarks_data else None
+            released_at = remarks_data[0].get("released_at") if remarks_data else None
             
             issues_count = sum(1 for r in remarks_data if r.get("issue_remarks"))
             
@@ -87,9 +97,9 @@ class ProducedItemsService:
                 "batch_number": None,
                 "product_name": None,
                 "remarks_data": remarks_data,
-                "activated_by": None,
-                "activated_at": None,
-                "released_by": None,
+                "activated_by": activated_by,
+                "activated_at": activated_at,
+                "released_by": released_by,
                 "released_at": released_at,
                 "total_departments": len(remarks_data),
                 "departments_with_issues": issues_count,

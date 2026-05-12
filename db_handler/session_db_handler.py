@@ -9,6 +9,7 @@ from models.db_models.department import Department
 from models.db_models.qr_code import QRCode
 from models.db_models.produced_items import ProducedItems
 from models.db_models.remarks import Remarks
+from models.db_models.user import User
 
 from datetime import datetime, timezone
 
@@ -132,9 +133,18 @@ class SessionDBHandler:
             if remark is None:
                 return None
 
+            # Resolve user name for history
+            changed_by_name = None
+            if current_user_id is not None:
+                user_result = await db.execute(select(User.name).where(User.id == current_user_id))
+                user_row = user_result.scalar_one_or_none()
+                if user_row:
+                    changed_by_name = user_row
+
             # Append current state to history
             history_entry = {
                 "date": remark.updated_at.isoformat() if getattr(remark, 'updated_at', None) else remark.created_at.isoformat(),
+                "changed_by": changed_by_name,
                 "field_1": remark.field_1,
                 "field_2": remark.field_2,
                 "field_3": remark.field_3,
@@ -414,6 +424,10 @@ class SessionDBHandler:
                         dept_name_map[row.id] = row.name
                         dept_seq_map[row.id] = row.sequence_order
 
+                # Capture activation info before QR is reset
+                activated_by = qr_code.enabled_by
+                activated_at = qr_code.enabled_at
+
                 # 4. Copy each remark into produced_items
                 for i, remark in enumerate(remarks):
                     dept_name = dept_name_map.get(remark.department_id, "Unknown")
@@ -432,6 +446,10 @@ class SessionDBHandler:
                         issue_remarks=remark.issue_remarks,
                         scanned_by=getattr(remark, "scanned_by", None),
                         last_edited_by=getattr(remark, "last_edited_by", None),
+                        activated_by=activated_by,
+                        activated_at=activated_at,
+                        released_by=released_by,
+                        released_at=datetime.utcnow(),
                         archived_at=datetime.utcnow(),
                         created_at=remark.created_at,
                     )
