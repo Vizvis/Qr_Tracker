@@ -22,6 +22,9 @@ __pycache__/
 *.db
 *.sqlite
 
+# SQL dump files (may contain sensitive data)
+*.sql
+
 # Logs
 *.log
 

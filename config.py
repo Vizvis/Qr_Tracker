@@ -1,5 +1,5 @@
 """
-Database configuration for local and cloud environments.
+Database configuration for local and GCP Cloud SQL environments.
 All sensitive values are loaded from environment variables / .env file.
 """
 import os
@@ -41,6 +41,9 @@ ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES", "30")
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "10"))
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "20"))
 
+# SSL mode for cloud DB: 'require' | 'disable'
+DB_SSL_MODE = os.getenv("DB_SSL_MODE", "require")
+
 # CORS Origins (comma-separated list)
 CORS_ORIGINS = [
     origin.strip()
@@ -54,7 +57,7 @@ class DatabaseConfig:
     
     @staticmethod
     def get_database_url() -> str:
-        """Returns database URL based on environment setting."""
+        """Returns async database URL based on environment setting."""
         if USE_LOCAL_DB:
             return (
                 f"postgresql+asyncpg://{DB_USER_LOCAL}:"
@@ -62,10 +65,12 @@ class DatabaseConfig:
                 f"{DB_PORT_LOCAL}/{DB_NAME_LOCAL}"
             )
         else:
+            # GCP Cloud SQL via public IP
+            ssl_suffix = "?ssl=require" if DB_SSL_MODE == "require" else ""
             return (
                 f"postgresql+asyncpg://{DB_USER_CLOUD}:"
                 f"{DB_PASSWORD_CLOUD}@{DB_HOST_CLOUD}:"
-                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}"
+                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}{ssl_suffix}"
             )
 
     @staticmethod
@@ -78,8 +83,10 @@ class DatabaseConfig:
                 f"{DB_PORT_LOCAL}/{DB_NAME_LOCAL}"
             )
         else:
+            # GCP Cloud SQL via public IP (psycopg2 uses sslmode=require)
+            ssl_suffix = "?sslmode=require" if DB_SSL_MODE == "require" else ""
             return (
                 f"postgresql://{DB_USER_CLOUD}:"
                 f"{DB_PASSWORD_CLOUD}@{DB_HOST_CLOUD}:"
-                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}"
+                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}{ssl_suffix}"
             )
