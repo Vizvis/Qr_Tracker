@@ -48,7 +48,7 @@ DB_SSL_MODE = os.getenv("DB_SSL_MODE", "require")
 # CORS Origins (comma-separated list)
 CORS_ORIGINS = [
     origin.strip()
-    for origin in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",")
+    for origin in os.getenv("CORS_ORIGINS", "https://qvoy.vercel.app,http://localhost:5173").split(",")
     if origin.strip()
 ]
 
