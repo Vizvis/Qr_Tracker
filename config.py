@@ -65,12 +65,11 @@ class DatabaseConfig:
                 f"{DB_PORT_LOCAL}/{DB_NAME_LOCAL}"
             )
         else:
-            # GCP Cloud SQL via public IP
-            ssl_suffix = "?ssl=require" if DB_SSL_MODE == "require" else ""
+            # GCP Cloud SQL via public IP — SSL handled via connect_args in database.py
             return (
                 f"postgresql+asyncpg://{DB_USER_CLOUD}:"
                 f"{DB_PASSWORD_CLOUD}@{DB_HOST_CLOUD}:"
-                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}{ssl_suffix}"
+                f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}"
             )
 
     @staticmethod

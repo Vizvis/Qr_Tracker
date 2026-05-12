@@ -1,10 +1,11 @@
 """
 Database engine and session management with Singleton pattern.
 """
+import ssl
 from typing import Optional
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, AsyncEngine
 from sqlalchemy.orm import sessionmaker, Session
-from config import DatabaseConfig, DB_POOL_SIZE, DB_MAX_OVERFLOW
+from config import DatabaseConfig, DB_POOL_SIZE, DB_MAX_OVERFLOW, USE_LOCAL_DB
 
 
 class DatabaseManager:
@@ -24,12 +25,22 @@ class DatabaseManager:
     def _initialize(self) -> None:
         """Initialize the database engine and session factory."""
         if self._engine is None:
+            # asyncpg requires SSL to be passed as an SSLContext object,
+            # not as a URL query parameter (?ssl=require is silently ignored).
+            connect_args = {}
+            if not USE_LOCAL_DB:
+                ssl_ctx = ssl.create_default_context()
+                ssl_ctx.check_hostname = False
+                ssl_ctx.verify_mode = ssl.CERT_NONE
+                connect_args["ssl"] = ssl_ctx
+
             self._engine = create_async_engine(
                 DatabaseConfig.get_database_url(),
                 echo=False,
                 future=True,
                 pool_size=DB_POOL_SIZE,
                 max_overflow=DB_MAX_OVERFLOW,
+                connect_args=connect_args,
             )
             
             self._session_factory = sessionmaker(
