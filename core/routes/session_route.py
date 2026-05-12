@@ -80,10 +80,12 @@ async def update_session_remark_patch(
 async def release_session(
     qr_id: str,
     current_user: Annotated[dict, Depends(require_valid_auth_cookie)],
+    force: Annotated[bool, Query(description="Release even if no remarks exist (no archive created)")] = False,
 ):
-    """Release a QR tag: archive production data, clear session, set tag inactive."""
+    """Release a QR tag: archive production data, clear session, set tag inactive.
+    If force=true and no remarks exist, just deactivates without archiving."""
     current_user_id = UUID(current_user["user_id"])
-    return await SessionService.release_session(qr_id, current_user_id)
+    return await SessionService.release_session(qr_id, current_user_id, force=force)
 
 
 @session_router.get("/{qr_id}")

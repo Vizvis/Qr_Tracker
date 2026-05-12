@@ -309,7 +309,7 @@ class SessionService:
         return SessionService._remark_to_dict(updated_row, department_name)
 
     @staticmethod
-    async def release_session(qr_id: str, current_user_id: UUID) -> dict:
+    async def release_session(qr_id: str, current_user_id: UUID, force: bool = False) -> dict:
         """Release a QR session: archive remarks, clear data, set QR inactive."""
         qr_code = await QRDBHandler.get_by_id(qr_id)
         if qr_code is None:
@@ -325,7 +325,7 @@ class SessionService:
             )
 
         try:
-            archived_count = await SessionDBHandler.release_session(qr_id, released_by=current_user_id)
+            archived_count = await SessionDBHandler.release_session(qr_id, released_by=current_user_id, force=force)
         except ValueError as exc:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,

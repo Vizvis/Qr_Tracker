@@ -366,11 +366,11 @@ class SessionDBHandler:
             ], int(total or 0)
 
     @staticmethod
-    async def release_session(qr_id: str, released_by: UUID) -> int:
+    async def release_session(qr_id: str, released_by: UUID, force: bool = False) -> int:
         """Archive remarks to produced_items, delete remarks, and set QR to inactive.
 
         Returns the number of remarks archived.
-        Raises ValueError if the QR is not active or has no remarks.
+        Raises ValueError if the QR is not active or has no remarks (and force is False).
         """
         logger.info(f"[RELEASE] Starting release_session for qr_id={qr_id}, released_by={released_by}")
         async with db_manager.session_factory() as db:
@@ -396,47 +396,50 @@ class SessionDBHandler:
             logger.info(f"[RELEASE] Found {len(remarks)} remarks for qr_id={qr_id}")
 
             if not remarks:
-                logger.error(f"[RELEASE] No remarks to archive for qr_id={qr_id}")
-                raise ValueError("No remarks found for this QR session — nothing to archive.")
+                if not force:
+                    logger.error(f"[RELEASE] No remarks to archive for qr_id={qr_id}")
+                    raise ValueError("No remarks found for this QR session — nothing to archive.")
+                else:
+                    logger.info(f"[RELEASE] Force releasing QR without remarks for qr_id={qr_id}")
+            else:
+                # 3. Resolve department names for all remarks
+                dept_ids = list({r.department_id for r in remarks if r.department_id})
+                dept_name_map: dict = {}
+                dept_seq_map: dict = {}
+                if dept_ids:
+                    dept_rows = await db.execute(
+                        select(Department.id, Department.name, Department.sequence_order).where(Department.id.in_(dept_ids))
+                    )
+                    for row in dept_rows.all():
+                        dept_name_map[row.id] = row.name
+                        dept_seq_map[row.id] = row.sequence_order
 
-            # 3. Resolve department names for all remarks
-            dept_ids = list({r.department_id for r in remarks if r.department_id})
-            dept_name_map: dict = {}
-            dept_seq_map: dict = {}
-            if dept_ids:
-                dept_rows = await db.execute(
-                    select(Department.id, Department.name, Department.sequence_order).where(Department.id.in_(dept_ids))
-                )
-                for row in dept_rows.all():
-                    dept_name_map[row.id] = row.name
-                    dept_seq_map[row.id] = row.sequence_order
+                # 4. Copy each remark into produced_items
+                for i, remark in enumerate(remarks):
+                    dept_name = dept_name_map.get(remark.department_id, "Unknown")
+                    dept_seq = dept_seq_map.get(remark.department_id, -1)
+                    logger.debug(f"[RELEASE] Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
+                    produced_item = ProducedItems(
+                        qr_id=qr_id,
+                        item_id=remark.item_id,
+                        department_name=dept_name,
+                        department_sequence=dept_seq,
+                        field_1=remark.field_1,
+                        field_2=remark.field_2,
+                        field_3=remark.field_3,
+                        field_4=remark.field_4,
+                        field_5=remark.field_5,
+                        issue_remarks=remark.issue_remarks,
+                        scanned_by=getattr(remark, "scanned_by", None),
+                        last_edited_by=getattr(remark, "last_edited_by", None),
+                        archived_at=datetime.utcnow(),
+                        created_at=remark.created_at,
+                    )
+                    db.add(produced_item)
 
-            # 4. Copy each remark into produced_items
-            for i, remark in enumerate(remarks):
-                dept_name = dept_name_map.get(remark.department_id, "Unknown")
-                dept_seq = dept_seq_map.get(remark.department_id, -1)
-                logger.debug(f"[RELEASE] Archiving remark {i+1}/{len(remarks)}: id={remark.id}, item_id={remark.item_id}, dept={dept_name}")
-                produced_item = ProducedItems(
-                    qr_id=qr_id,
-                    item_id=remark.item_id,
-                    department_name=dept_name,
-                    department_sequence=dept_seq,
-                    field_1=remark.field_1,
-                    field_2=remark.field_2,
-                    field_3=remark.field_3,
-                    field_4=remark.field_4,
-                    field_5=remark.field_5,
-                    issue_remarks=remark.issue_remarks,
-                    scanned_by=getattr(remark, "scanned_by", None),
-                    last_edited_by=getattr(remark, "last_edited_by", None),
-                    archived_at=datetime.utcnow(),
-                    created_at=remark.created_at,
-                )
-                db.add(produced_item)
-
-            # 4. Delete all remarks for this QR
-            await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
-            logger.info(f"[RELEASE] Deleted remarks from remarks table for qr_id={qr_id}")
+                # 4. Delete all remarks for this QR
+                await db.execute(delete(Remarks).where(Remarks.qr_id == qr_id))
+                logger.info(f"[RELEASE] Deleted remarks from remarks table for qr_id={qr_id}")
 
             # 5. Reset QR tag to inactive
             qr_code.status = "inactive"
