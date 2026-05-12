@@ -23,8 +23,8 @@ class CookieAuth:
             value=token,
             max_age=max_age,
             httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite="lax",
+            secure=True,
+            samesite="none",
             path=CookieAuth.COOKIE_PATH,
         )
     
@@ -36,8 +36,8 @@ class CookieAuth:
             value=token,
             max_age=7 * 24 * 60 * 60,  # 7 days
             httponly=True,
-            secure=False,  # Set to True in production with HTTPS
-            samesite="lax",
+            secure=True,
+            samesite="none",
             path=CookieAuth.COOKIE_PATH,
         )
     
