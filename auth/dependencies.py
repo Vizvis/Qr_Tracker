@@ -67,8 +67,10 @@ def _require_min_role(min_role: str):
     return role_checker
 
 def get_current_user_token(request: Request) -> dict:
-    """Validate access token from cookie and return JWT payload."""
-    token = CookieAuth.get_token_from_cookie(request)
+    """Validate access token from Authorization header or cookie and return JWT payload."""
+    token = CookieAuth.get_token_from_header(request)
+    if not token:
+        token = CookieAuth.get_token_from_cookie(request)
 
     if not token:
         raise HTTPException(

@@ -42,6 +42,17 @@ class CookieAuth:
         )
     
     @staticmethod
+    def get_token_from_header(request: Request) -> Optional[str]:
+        """Extract access token from Authorization header."""
+        auth_header = request.headers.get("Authorization")
+        if not auth_header:
+            return None
+        parts = auth_header.split()
+        if len(parts) != 2 or parts[0].lower() != "bearer":
+            return None
+        return parts[1]
+
+    @staticmethod
     def get_token_from_cookie(request: Request) -> Optional[str]:
         """Extract access token from cookie."""
         return request.cookies.get(CookieAuth.COOKIE_NAME)
@@ -84,8 +95,10 @@ class CookieAuth:
 
 
 async def require_valid_auth_cookie(request: Request) -> dict:
-    """Validate access token from cookie and return JWT payload."""
-    token = CookieAuth.get_token_from_cookie(request)
+    """Validate access token from Authorization header or cookie and return JWT payload."""
+    token = CookieAuth.get_token_from_header(request)
+    if not token:
+        token = CookieAuth.get_token_from_cookie(request)
 
     if not token:
         raise HTTPException(
