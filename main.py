@@ -12,7 +12,6 @@ from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from auth.cookie_auth import require_valid_auth_cookie
 from db_handler.database import db_manager
-from config import CORS_ORIGINS
 from core.routes.user_route import user_router
 from core.routes.department_route import department_router
 from core.routes.produced_items_route import produced_items_router
@@ -46,7 +45,10 @@ app = FastAPI(
 # Add CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=CORS_ORIGINS,
+    allow_origins=[
+        "https://frontend-qvoy.vercel.app",
+        "http://localhost:5173",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
