@@ -3,6 +3,7 @@ Database configuration for local and GCP Cloud SQL environments.
 All sensitive values are loaded from environment variables / .env file.
 """
 import os
+from urllib.parse import quote
 from dotenv import load_dotenv
 
 # Load .env file (does nothing if file doesn't exist)
@@ -61,14 +62,14 @@ class DatabaseConfig:
         if USE_LOCAL_DB:
             return (
                 f"postgresql+asyncpg://{DB_USER_LOCAL}:"
-                f"{DB_PASSWORD_LOCAL}@{DB_HOST_LOCAL}:"
+                f"{quote(DB_PASSWORD_LOCAL, safe='')}@{DB_HOST_LOCAL}:"
                 f"{DB_PORT_LOCAL}/{DB_NAME_LOCAL}"
             )
         else:
             # GCP Cloud SQL via public IP — SSL handled via connect_args in database.py
             return (
                 f"postgresql+asyncpg://{DB_USER_CLOUD}:"
-                f"{DB_PASSWORD_CLOUD}@{DB_HOST_CLOUD}:"
+                f"{quote(DB_PASSWORD_CLOUD, safe='')}@{DB_HOST_CLOUD}:"
                 f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}"
             )
 
@@ -78,7 +79,7 @@ class DatabaseConfig:
         if USE_LOCAL_DB:
             return (
                 f"postgresql://{DB_USER_LOCAL}:"
-                f"{DB_PASSWORD_LOCAL}@{DB_HOST_LOCAL}:"
+                f"{quote(DB_PASSWORD_LOCAL, safe='')}@{DB_HOST_LOCAL}:"
                 f"{DB_PORT_LOCAL}/{DB_NAME_LOCAL}"
             )
         else:
@@ -86,6 +87,6 @@ class DatabaseConfig:
             ssl_suffix = "?sslmode=require" if DB_SSL_MODE == "require" else ""
             return (
                 f"postgresql://{DB_USER_CLOUD}:"
-                f"{DB_PASSWORD_CLOUD}@{DB_HOST_CLOUD}:"
+                f"{quote(DB_PASSWORD_CLOUD, safe='')}@{DB_HOST_CLOUD}:"
                 f"{DB_PORT_CLOUD}/{DB_NAME_CLOUD}{ssl_suffix}"
             )

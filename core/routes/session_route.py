@@ -17,6 +17,18 @@ from models.api_models.session_models import (
 session_router = APIRouter(prefix="/api/session", tags=["Session"])
 
 
+@session_router.get("/check-item/{item_id}")
+async def check_item_id(
+    item_id: str,
+    _: Annotated[dict, Depends(require_valid_auth_cookie)],
+    qr_id: Annotated[str, Query(description="Current QR ID to exclude from the check")] = "",
+):
+    """Check whether an item_id is already in use by another QR or in the archive."""
+    from db_handler.session_db_handler import SessionDBHandler
+    in_use = await SessionDBHandler.is_item_id_used_by_other_qr(item_id, qr_id)
+    return {"item_id": item_id, "qr_id": qr_id, "in_use": in_use}
+
+
 @session_router.get("/active-qrs", response_model=ActiveQRRemarksListResponse)
 async def get_active_qrs_with_remarks(
     _: Annotated[dict, Depends(require_valid_auth_cookie)],
