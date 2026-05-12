@@ -32,10 +32,10 @@ def _group_by_item_id(items) -> dict[str, list[ProducedItemResponse]]:
                 field_4=item.field_4 if item.field_4 is not None else 0,
                 field_5=item.field_5 if item.field_5 is not None else 0,
                 issue_remarks=item.issue_remarks,
-                created_by=str(item.created_by) if item.created_by else None,
-                updated_by=str(item.updated_by) if item.updated_by else None,
-                remark_by=str(item.remark_by) if item.remark_by else None,
-                remark_updated=str(item.remark_updated) if item.remark_updated else None,
+                scanned_by=str(item.scanned_by) if item.scanned_by else None,
+                last_edited_by=str(item.last_edited_by) if item.last_edited_by else None,
+                department_sequence=item.department_sequence,
+                archived_at=item.archived_at,
                 created_at=item.created_at,
             )
         )

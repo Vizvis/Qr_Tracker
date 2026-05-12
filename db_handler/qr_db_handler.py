@@ -109,10 +109,9 @@ class QRDBHandler:
                     field_4=remark.field_4,
                     field_5=remark.field_5,
                     issue_remarks=remark.issue_remarks,
-                    created_by=remark.remark_by,
-                    updated_by=remark.remark_updated,
-                    remark_by=remark.remark_by,
-                    remark_updated=remark.remark_updated,
+                    scanned_by=getattr(remark, "scanned_by", None),
+                    last_edited_by=getattr(remark, "last_edited_by", None),
+                    archived_at=datetime.utcnow(),
                     created_at=remark.created_at,
                 )
                 db.add(produced_item)

@@ -35,7 +35,6 @@ class DepartmentService:
             name=payload.name,
             sequence_order=payload.sequence_order,
             status=payload.status,
-            head_of_department=payload.head_of_department,
         )
         return await DepartmentDBHandler.create(department)
 
@@ -55,8 +54,7 @@ class DepartmentService:
             update_data["sequence_order"] = payload.sequence_order
         if payload.status is not None:
             update_data["status"] = payload.status
-        if "head_of_department" in payload.model_fields_set:
-            update_data["head_of_department"] = payload.head_of_department
+
 
         updated_department = await DepartmentDBHandler.update(department_id, update_data)
         if updated_department is None:

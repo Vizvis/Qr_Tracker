@@ -153,7 +153,7 @@ class SessionDBHandler:
                 setattr(remark, field, value)
 
             if current_user_id is not None:
-                remark.remark_updated = current_user_id
+                remark.last_edited_by = current_user_id
 
             # updated_at must be timezone-naive to match the DB column
             remark.updated_at = datetime.utcnow()
@@ -347,8 +347,8 @@ class SessionDBHandler:
                         "field_5": remark.field_5 if remark.field_5 is not None else 0,
                         "issue_remarks": remark.issue_remarks,
                         "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
-                        "remark_by": str(remark.remark_by) if remark.remark_by else None,
-                        "remark_updated": str(remark.remark_updated) if getattr(remark, 'remark_updated', None) else None,
+                        "scanned_by": str(remark.scanned_by) if getattr(remark, 'scanned_by', None) else None,
+                        "last_edited_by": str(remark.last_edited_by) if getattr(remark, 'last_edited_by', None) else None,
                         "created_at": remark.created_at.replace(tzinfo=timezone.utc) if remark.created_at else None,
                         "updated_at": remark.updated_at.replace(tzinfo=timezone.utc) if getattr(remark, 'updated_at', None) else None,
                     }
@@ -427,8 +427,8 @@ class SessionDBHandler:
                     field_4=remark.field_4,
                     field_5=remark.field_5,
                     issue_remarks=remark.issue_remarks,
-                    scanned_by=getattr(remark, "scanned_by", None) or getattr(remark, "remark_by", None),
-                    last_edited_by=getattr(remark, "last_edited_by", None) or getattr(remark, "remark_updated", None),
+                    scanned_by=getattr(remark, "scanned_by", None),
+                    last_edited_by=getattr(remark, "last_edited_by", None),
                     archived_at=datetime.utcnow(),
                     created_at=remark.created_at,
                 )

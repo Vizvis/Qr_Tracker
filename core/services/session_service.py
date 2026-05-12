@@ -36,8 +36,8 @@ class SessionService:
             "issue_remarks": remark.issue_remarks,
             "custom_data": remark.custom_data if remark.custom_data is not None else {},
             "remarks_history": remark.remarks_history if remark.remarks_history is not None else [],
-            "remark_by": str(remark.remark_by) if getattr(remark, "remark_by", None) is not None else None,
-            "remark_updated": str(remark.remark_updated) if getattr(remark, "remark_updated", None) is not None else None,
+            "scanned_by": str(remark.scanned_by) if getattr(remark, "scanned_by", None) is not None else None,
+            "last_edited_by": str(remark.last_edited_by) if getattr(remark, "last_edited_by", None) is not None else None,
             "created_at": remark.created_at.replace(tzinfo=timezone.utc) if remark.created_at is not None else None,
             "updated_at": remark.updated_at.replace(tzinfo=timezone.utc) if getattr(remark, 'updated_at', None) is not None else None,
         }
